@@ -1,0 +1,85 @@
+'use client';
+
+import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Plus, Folder, ChevronsUpDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useChatStore } from '@/store/useChatStore';
+import { SettingsModal } from './SettingsModal';
+
+// Model selector component
+function ModelSelector({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (model: string) => void;
+}) {
+  const models = ['Balanced', 'Creative', 'Precise'];
+  
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="flex items-center gap-2 text-lg font-semibold">
+          <span>{value}</span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {models.map((model) => (
+          <DropdownMenuItem key={model} onSelect={() => onChange(model)}>
+            {model}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export default function Header() {
+  const { model, setModel, createConversation, sidebarOpen, setSidebarOpen } = useChatStore();
+
+  const handleNewChat = () => {
+    createConversation();
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  return (
+    <header className="border-b p-2 flex items-center justify-between h-14 shrink-0">
+      <div className="flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          aria-label="Toggle sidebar"
+          onClick={toggleSidebar}
+          className="lg:hidden"
+        >
+          {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+        </Button>
+        <ModelSelector value={model} onChange={setModel} />
+      </div>
+      <div className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          aria-label="New Chat"
+          onClick={handleNewChat}
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" aria-label="History">
+          <Folder className="h-5 w-5" />
+        </Button>
+        <SettingsModal />
+      </div>
+    </header>
+  );
+}

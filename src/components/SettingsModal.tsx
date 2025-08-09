@@ -119,7 +119,9 @@ export function SettingsModal() {
 
             <div className="space-y-2">
               <Label htmlFor="theme">Theme</Label>
-              <Select value={theme} onValueChange={setTheme}>
+              <Select value={theme} onValueChange={(newTheme) => {
+                setTheme(newTheme as 'light' | 'dark' | 'system');
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select theme" />
                 </SelectTrigger>
@@ -131,6 +133,9 @@ export function SettingsModal() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Current theme: {theme} | DOM class: {typeof document !== 'undefined' ? (document.documentElement.classList.contains('dark') ? 'dark' : 'light') : 'unknown'}
+              </p>
             </div>
 
             <div className="space-y-2">

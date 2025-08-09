@@ -3,6 +3,92 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.syntax-highlighted {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+
+.syntax-highlighted .hljs-keyword,
+.syntax-highlighted .hljs-function,
+.syntax-highlighted .hljs-class,
+.syntax-highlighted .hljs-built_in,
+.syntax-highlighted .hljs-type,
+.syntax-highlighted .hljs-literal {
+  color: #d73a49;
+  font-weight: 600;
+}
+
+.syntax-highlighted .hljs-string,
+.syntax-highlighted .hljs-meta,
+.syntax-highlighted .hljs-name,
+.syntax-highlighted .hljs-type,
+.syntax-highlighted .hljs-symbol,
+.syntax-highlighted .hljs-bullet,
+.syntax-highlighted .hljs-addition,
+.syntax-highlighted .hljs-variable,
+.syntax-highlighted .hljs-template-variable,
+.syntax-highlighted .hljs-attribute {
+  color: #032f62;
+}
+
+.syntax-highlighted .hljs-number,
+.syntax-highlighted .hljs-regexp,
+.syntax-highlighted .hljs-link,
+.syntax-highlighted .hljs-selector-id,
+.syntax-highlighted .hljs-selector-class {
+  color: #005cc5;
+}
+
+.syntax-highlighted .hljs-comment,
+.syntax-highlighted .hljs-meta,
+.syntax-highlighted .hljs-quote,
+.syntax-highlighted .hljs-deletion {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.dark .syntax-highlighted .hljs-keyword,
+.dark .syntax-highlighted .hljs-function,
+.dark .syntax-highlighted .hljs-class,
+.dark .syntax-highlighted .hljs-built_in,
+.dark .syntax-highlighted .hljs-type,
+.dark .syntax-highlighted .hljs-literal {
+  color: #ff7b72;
+}
+
+.dark .syntax-highlighted .hljs-string,
+.dark .syntax-highlighted .hljs-meta,
+.dark .syntax-highlighted .hljs-name,
+.dark .syntax-highlighted .hljs-type,
+.dark .syntax-highlighted .hljs-symbol,
+.dark .syntax-highlighted .hljs-bullet,
+.dark .syntax-highlighted .hljs-addition,
+.dark .syntax-highlighted .hljs-variable,
+.dark .syntax-highlighted .hljs-template-variable,
+.dark .syntax-highlighted .hljs-attribute {
+  color: #a5d6ff;
+}
+
+.dark .syntax-highlighted .hljs-number,
+.dark .syntax-highlighted .hljs-regexp,
+.dark .syntax-highlighted .hljs-link,
+.dark .syntax-highlighted .hljs-selector-id,
+.dark .syntax-highlighted .hljs-selector-class {
+  color: #79c0ff;
+}
+
+.dark .syntax-highlighted .hljs-comment,
+.dark .syntax-highlighted .hljs-meta,
+.dark .syntax-highlighted .hljs-quote,
+.dark .syntax-highlighted .hljs-deletion {
+  color: #8b949e;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

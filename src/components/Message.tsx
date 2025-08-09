@@ -2,15 +2,14 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { 
   Copy, 
   ThumbsUp, 
   ThumbsDown, 
   RotateCcw, 
   Trash2, 
-  ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { Message as MessageType, Citation } from '@/store/useChatStore';
 import { cn } from '@/lib/utils';
@@ -29,9 +28,10 @@ interface MessageProps {
   isStreaming?: boolean;
 }
 
-// Code block component with syntax highlighting
 const CodeBlock = ({ code, language = 'text' }: { code: string; language?: string }) => {
   const [copied, setCopied] = React.useState(false);
+  const [highlightedCode, setHighlightedCode] = React.useState<string>('');
+  const [isHighlighting, setIsHighlighting] = React.useState(false);
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(code);
@@ -39,27 +39,64 @@ const CodeBlock = ({ code, language = 'text' }: { code: string; language?: strin
     setTimeout(() => setCopied(false), 2000);
   };
 
+  React.useEffect(() => {
+    const highlightCode = async () => {
+      if (code && language !== 'text') {
+        setIsHighlighting(true);
+        try {
+          const { highlight } = await import('@/lib/shiki');
+          const highlighted = await highlight(code, language, 'light');
+          setHighlightedCode(highlighted);
+        } catch (error) {
+          console.error('Failed to highlight code:', error);
+          setHighlightedCode('');
+        } finally {
+          setIsHighlighting(false);
+        }
+      }
+    };
+
+    highlightCode();
+  }, [code, language]);
+
   return (
     <div className="relative my-4 rounded-lg bg-muted/50 border">
       <div className="flex items-center justify-between p-3 border-b bg-muted/30">
-        <span className="text-sm font-mono text-muted-foreground">{language}</span>
+        <span className="text-sm font-mono text-muted-foreground uppercase">{language}</span>
         <Button
           variant="ghost"
           size="sm"
           onClick={copyToClipboard}
           className="h-8 w-8 p-0"
         >
-          <Copy className="h-4 w-4" />
+          {copied ? (
+            <Check className="h-4 w-4 text-green-500" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
         </Button>
       </div>
-      <pre className="p-4 overflow-x-auto">
-        <code className="text-sm font-mono">{code}</code>
-      </pre>
+      <div className="p-4 overflow-x-auto">
+        {isHighlighting ? (
+          <pre className="text-sm font-mono">
+            <code>{code}</code>
+          </pre>
+        ) : highlightedCode ? (
+          <div 
+            dangerouslySetInnerHTML={{ __html: highlightedCode }} 
+            className="syntax-highlighted-container"
+          />
+        ) : (
+          <pre className="text-sm font-mono">
+            <code>{code}</code>
+          </pre>
+        )}
+      </div>
     </div>
   );
 };
 
-// Citation chip component
+
 const CitationChip = ({ 
   citation, 
   onClick 
@@ -99,7 +136,6 @@ const CitationChip = ({
   );
 };
 
-// Follow-up suggestion chip
 const FollowUpChip = ({ 
   suggestion, 
   onClick 
@@ -120,7 +156,6 @@ const FollowUpChip = ({
   );
 };
 
-// Message actions component
 const MessageActions = ({
   onCopy,
   onRegenerate,
@@ -202,16 +237,13 @@ export function Message({
   const hasCitations = message.citations && message.citations.length > 0;
   const hasSuggestions = message.suggestions && message.suggestions.length > 0;
 
-  // Parse content for code blocks and citations
   const parseContent = (content: string) => {
-    // Simple code block detection (```language\ncode\n```)
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = codeBlockRegex.exec(content)) !== null) {
-      // Add text before code block
       if (match.index > lastIndex) {
         parts.push({
           type: 'text',
@@ -219,7 +251,6 @@ export function Message({
         });
       }
 
-      // Add code block
       parts.push({
         type: 'code',
         language: match[1] || 'text',
@@ -229,7 +260,6 @@ export function Message({
       lastIndex = match.index + match[0].length;
     }
 
-    // Add remaining text
     if (lastIndex < content.length) {
       parts.push({
         type: 'text',
@@ -262,7 +292,6 @@ export function Message({
         "mx-auto max-w-4xl",
         isUser ? "text-right" : "text-left"
       )}>
-        {/* Message content */}
         <div className={cn(
           "inline-block rounded-lg p-4 max-w-full",
           isUser 
@@ -273,13 +302,11 @@ export function Message({
             <p className="text-sm">{message.content}</p>
           ) : (
             <div className="space-y-4">
-              {/* Render content parts */}
               {contentParts.map((part, index) => (
                 <React.Fragment key={index}>
                   {part.type === 'text' && (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       {part.content.split(' ').map((word, wordIndex) => {
-                        // Check if word contains citation markers like [1], [2], etc.
                         const citationMatch = word.match(/\[(\d+)\]/);
                         if (citationMatch && hasCitations) {
                           const citationId = parseInt(citationMatch[1]);
@@ -307,7 +334,6 @@ export function Message({
                 </React.Fragment>
               ))}
 
-              {/* Streaming indicator */}
               {isStreaming && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div className="flex space-x-1">
@@ -319,7 +345,6 @@ export function Message({
                 </div>
               )}
 
-              {/* Follow-up suggestions */}
               {hasSuggestions && !isStreaming && (
                 <div className="mt-6 pt-4 border-t">
                   <p className="text-sm text-muted-foreground mb-3">Follow up with:</p>
@@ -338,7 +363,6 @@ export function Message({
           )}
         </div>
 
-        {/* Message actions */}
         {!isUser && (
           <div className="mt-2 flex justify-end">
             <MessageActions

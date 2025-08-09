@@ -1,18 +1,15 @@
-import { Citation, Message } from '@/store/useChatStore';
+import { Citation } from '@/store/useChatStore';
 
-// Environment configuration
 const LIBRECHAT_BASE_URL = process.env.NEXT_PUBLIC_LIBRECHAT_BASE_URL || 'http://localhost:3080';
 const LIBRECHAT_API_KEY = process.env.NEXT_PUBLIC_LIBRECHAT_API_KEY || '';
 const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' || !LIBRECHAT_API_KEY;
 
-// Log configuration for debugging
 console.log('API Configuration:', {
   baseURL: LIBRECHAT_BASE_URL,
   hasApiKey: !!LIBRECHAT_API_KEY,
   useMock: USE_MOCK_API
 });
 
-// Types
 export interface ChatRequest {
   message: string;
   model?: string;
@@ -33,7 +30,6 @@ export interface Conversation {
   updatedAt: string;
 }
 
-// Mock data for development
 const mockCitations: Citation[] = [
   {
     id: 1,
@@ -65,19 +61,26 @@ const mockSuggestions = [
   "What's the difference between SSR and SSG in Next.js?"
 ];
 
-// Mock streaming response generator
-async function* generateMockStream(message: string) {
-  const response = `Here's a comprehensive answer about ${message.toLowerCase()}. This is a detailed explanation that covers all the important aspects you need to know [1]. The response includes multiple paragraphs with relevant information and examples [2]. You can find more details in the official documentation [3].`;
-  
-  const chunks = response.split(' ');
-  for (const chunk of chunks) {
-    // Simulate realistic typing speed
-    await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
-    yield chunk + ' ';
-  }
-}
+        async function* generateMockStream(message: string) {
+          let response = `Here's a comprehensive answer about ${message.toLowerCase()}. This is a detailed explanation that covers all the important aspects you need to know [1]. The response includes multiple paragraphs with relevant information and examples [2]. You can find more details in the official documentation [3].`;
+          
+          if (message.toLowerCase().includes('javascript') || message.toLowerCase().includes('js')) {
+            response += `\n\nHere's a JavaScript example:\n\n\`\`\`javascript\nfunction greet(name) {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(greet('World'));\n\`\`\``;
+          } else if (message.toLowerCase().includes('python')) {
+            response += `\n\nHere's a Python example:\n\n\`\`\`python\ndef greet(name):\n    return f"Hello, {name}!"\n\nprint(greet('World'))\n\`\`\``;
+          } else if (message.toLowerCase().includes('react') || message.toLowerCase().includes('component')) {
+            response += `\n\nHere's a React component example:\n\n\`\`\`jsx\nimport React from 'react';\n\nfunction Greeting({ name }) {\n  return <h1>Hello, {name}!</h1>;\n}\n\nexport default Greeting;\n\`\`\``;
+          } else if (message.toLowerCase().includes('css') || message.toLowerCase().includes('style')) {
+            response += `\n\nHere's a CSS example:\n\n\`\`\`css\n.button {\n  background-color: #007bff;\n  color: white;\n  padding: 10px 20px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\`\`\``;
+          }
+          
+          const chunks = response.split(' ');
+          for (const chunk of chunks) {
+            await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
+            yield chunk + ' ';
+          }
+        }
 
-// API class
 class ChatAPI {
   private baseURL: string;
   private apiKey: string;
@@ -113,7 +116,6 @@ class ChatAPI {
     return response;
   }
 
-  // Stream chat response
   async streamChat(
     request: ChatRequest,
     onChunk: (chunk: string) => void,
@@ -172,7 +174,7 @@ class ChatAPI {
                   conversationId = parsed.conversationId;
                 }
               } catch (e) {
-                // Ignore parsing errors for incomplete chunks
+                
               }
             }
           }
@@ -191,7 +193,6 @@ class ChatAPI {
     }
   }
 
-  // Mock streaming implementation
   private async mockStreamChat(
     request: ChatRequest,
     onChunk: (chunk: string) => void,
@@ -216,7 +217,6 @@ class ChatAPI {
         onChunk(chunk);
       }
 
-      // Add citations and suggestions after a delay
       setTimeout(() => {
         onCitations?.(mockCitations);
       }, 1000);
@@ -239,7 +239,6 @@ class ChatAPI {
     }
   }
 
-  // Get conversations list
   async getConversations(): Promise<Conversation[]> {
     if (this.useMock) {
       return [
@@ -262,7 +261,6 @@ class ChatAPI {
     return response.json();
   }
 
-  // Create conversation
   async createConversation(title: string): Promise<Conversation> {
     if (this.useMock) {
       return {
@@ -280,7 +278,6 @@ class ChatAPI {
     return response.json();
   }
 
-  // Rename conversation
   async renameConversation(id: string, title: string): Promise<void> {
     if (this.useMock) {
       return;
@@ -292,7 +289,6 @@ class ChatAPI {
     });
   }
 
-  // Delete conversation
   async deleteConversation(id: string): Promise<void> {
     if (this.useMock) {
       return;
@@ -303,7 +299,6 @@ class ChatAPI {
     });
   }
 
-  // Get suggestions
   async getSuggestions(prompt: string): Promise<string[]> {
     if (this.useMock) {
       return mockSuggestions;
@@ -313,7 +308,6 @@ class ChatAPI {
     return response.json() as Promise<string[]>;
   }
 
-  // Get sources for a message
   async getSources(messageId: string): Promise<Citation[]> {
     if (this.useMock) {
       return mockCitations;
@@ -323,7 +317,6 @@ class ChatAPI {
     return response.json() as Promise<Citation[]>;
   }
 
-  // Test connection
   async testConnection(): Promise<boolean> {
     if (this.useMock) {
       return true;

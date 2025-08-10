@@ -26,7 +26,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 
 function ThemeSync() {
-  const { theme: storeTheme, setTheme: setStoreTheme } = useChatStore();
+  const { theme: storeTheme } = useChatStore();
 
   useEffect(() => {
     const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';

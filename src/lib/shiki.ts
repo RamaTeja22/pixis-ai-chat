@@ -4,8 +4,7 @@ import rehypeHighlight from 'rehype-highlight';
 
 export async function highlight(
   code: string,
-  lang: string,
-  theme: string = 'light'
+  lang: string
 ): Promise<string> {
   try {
     const escapedCode = code

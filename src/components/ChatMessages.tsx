@@ -6,7 +6,7 @@ import { Citation } from '@/store/useChatStore';
 import * as React from 'react';
 
 export function ChatMessages() {
-  const { 
+    const {
     currentConversation, 
     addMessage, 
     updateMessageContent, 
@@ -14,13 +14,11 @@ export function ChatMessages() {
     setMessageStreaming,
     addCitations,
     addSuggestions,
-    removeMessage,
     removeMessagePair,
     thumbsUpMessage,
     thumbsDownMessage,
     startStreaming,
-    stopStreaming,
-    streaming
+    stopStreaming
   } = useChatStore();
   
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);

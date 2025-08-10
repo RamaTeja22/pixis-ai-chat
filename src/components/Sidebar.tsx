@@ -212,7 +212,7 @@ export default function Sidebar() {
     renameConversation,
     setCurrentConversation,
     createFolder,
-    deleteFolder,
+
     moveConversationToFolder,
   } = useChatStore();
 

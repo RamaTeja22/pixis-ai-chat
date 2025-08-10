@@ -173,7 +173,7 @@ class ChatAPI {
                 } else if (parsed.conversationId) {
                   conversationId = parsed.conversationId;
                 }
-              } catch (e) {
+              } catch {
                 
               }
             }

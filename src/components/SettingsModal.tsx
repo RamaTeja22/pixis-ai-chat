@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
@@ -69,7 +68,7 @@ export function SettingsModal() {
     try {
       const success = await chatAPI.testConnection();
       setConnectionStatus(success ? 'success' : 'error');
-    } catch (error) {
+    } catch {
       setConnectionStatus('error');
     }
   };

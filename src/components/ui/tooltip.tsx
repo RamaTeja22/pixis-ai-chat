@@ -66,11 +66,11 @@ const Tooltip = ({ children, content, side = "top", className }: TooltipProps) =
   )
 }
 
-const TooltipTrigger = ({ children, asChild, ...props }: { children: React.ReactNode; asChild?: boolean }) => {
+const TooltipTrigger = ({ children, ...props }: { children: React.ReactNode }) => {
   return <div {...props}>{children}</div>
 }
 
-const TooltipContent = ({ children, side, className, ...props }: { children: React.ReactNode; side?: string; className?: string }) => {
+const TooltipContent = ({ children, className, ...props }: { children: React.ReactNode; className?: string }) => {
   return <div className={cn(className)} {...props}>{children}</div>
 }
 

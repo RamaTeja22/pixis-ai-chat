@@ -37,14 +37,14 @@ export async function parseMarkdownWithCodeBlocks(content: string): Promise<Pars
     const code = match[2].trim();
     
     try {
-      const highlightedCode = await highlight(code, language as any, 'github-light');
+      const highlightedCode = await highlight(code, language);
       parts.push({
         type: 'code',
         content: code,
         language,
         highlightedCode,
       });
-    } catch (error) {
+    } catch {
       parts.push({
         type: 'code',
         content: code,

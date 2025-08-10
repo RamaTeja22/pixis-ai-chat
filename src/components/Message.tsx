@@ -45,7 +45,7 @@ const CodeBlock = ({ code, language = 'text' }: { code: string; language?: strin
         setIsHighlighting(true);
         try {
           const { highlight } = await import('@/lib/shiki');
-          const highlighted = await highlight(code, language, 'light');
+          const highlighted = await highlight(code, language);
           setHighlightedCode(highlighted);
         } catch (error) {
           console.error('Failed to highlight code:', error);

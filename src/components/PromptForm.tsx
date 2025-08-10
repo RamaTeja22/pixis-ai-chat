@@ -78,7 +78,7 @@ export function PromptForm() {
       renameConversation(conversationId, userPrompt || 'Image upload');
     }
 
-    const messageId = addMessage(conversationId, {
+    addMessage(conversationId, {
       role: 'user',
       content: userPrompt || (attachments.length > 0 ? `Uploaded ${attachments.length} image${attachments.length > 1 ? 's' : ''}` : ''),
       attachments: attachments,

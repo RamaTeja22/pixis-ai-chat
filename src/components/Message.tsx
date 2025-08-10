@@ -299,7 +299,26 @@ export function Message({
             : "bg-background border shadow-sm"
         )}>
           {isUser ? (
-            <p className="text-sm">{message.content}</p>
+            <div className="space-y-3">
+              {message.content && (
+                <p className="text-sm">{message.content}</p>
+              )}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {message.attachments.map((attachment) => (
+                    <div key={attachment.id} className="relative">
+                      {attachment.type === 'image' && (
+                        <img
+                          src={attachment.url}
+                          alt={attachment.name}
+                          className="max-w-full h-auto max-h-48 rounded-md border object-cover"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-4">
               {contentParts.map((part, index) => (

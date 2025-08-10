@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider>
           {children}
         </ThemeProvider>
       </body>

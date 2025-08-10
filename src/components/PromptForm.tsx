@@ -3,12 +3,14 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, StopCircle } from 'lucide-react';
+import { Send, StopCircle, Paperclip, X } from 'lucide-react';
 import { useShortcuts } from '@/hooks/useShortcuts';
-import { useChatStore } from '@/store/useChatStore';
+import { useChatStore, Attachment } from '@/store/useChatStore';
 
 export function PromptForm() {
   const [prompt, setPrompt] = React.useState('');
+  const [attachments, setAttachments] = React.useState<Attachment[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const { 
     currentConversation, 
@@ -25,38 +27,66 @@ export function PromptForm() {
     streaming 
   } = useChatStore();
   
-
-  
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const handleFocus = () => {
     textareaRef.current?.focus();
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const attachment: Attachment = {
+            id: Math.random().toString(36).substring(2, 15),
+            type: 'image',
+            name: file.name,
+            url: e.target?.result as string,
+            size: file.size,
+            mimeType: file.type,
+          };
+          setAttachments(prev => [...prev, attachment]);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+  };
+
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    if (!prompt.trim() || streaming) return;
+    if ((!prompt.trim() && attachments.length === 0) || streaming) return;
 
     const userPrompt = prompt.trim();
     setPrompt('');
 
-    // Create conversation if none exists
     let conversationId = currentConversation?.id;
     if (!conversationId) {
-      conversationId = createConversation(userPrompt);
+      conversationId = createConversation(userPrompt || 'Image upload');
     } else if (currentConversation?.title === 'New Chat' && currentConversation?.messages.length === 0) {
-      // Update the title if it's still "New Chat" and no messages yet
-      renameConversation(conversationId, userPrompt);
+      renameConversation(conversationId, userPrompt || 'Image upload');
     }
 
-    // Add user message
-    addMessage(conversationId, {
+    const messageId = addMessage(conversationId, {
       role: 'user',
-      content: userPrompt,
+      content: userPrompt || (attachments.length > 0 ? `Uploaded ${attachments.length} image${attachments.length > 1 ? 's' : ''}` : ''),
+      attachments: attachments,
     });
 
-    // Start streaming response
-    await handleStreamResponse(userPrompt, conversationId);
+    setAttachments([]);
+
+    await handleStreamResponse(userPrompt || 'Please analyze the uploaded image(s)', conversationId);
   };
 
   const handleStopStreaming = () => {
@@ -65,28 +95,22 @@ export function PromptForm() {
     }
   };
 
-  // Stream response from API
   const handleStreamResponse = async (prompt: string, conversationId: string) => {
-    // Cancel any existing stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
 
-    // Add assistant message placeholder and get its ID
     const assistantMessageId = addMessage(conversationId, {
       role: 'assistant',
       content: '',
     });
 
-    // Set streaming state
     setMessageStreaming(conversationId, assistantMessageId, true);
     startStreaming();
 
     try {
-      // Import the API dynamically to avoid SSR issues
       const { chatAPI } = await import('@/lib/api');
       
       await chatAPI.streamChat(
@@ -96,20 +120,16 @@ export function PromptForm() {
           conversationId,
         },
         (chunk) => {
-          // Append chunk to the message
           console.log('Received chunk:', chunk);
           appendMessageContent(conversationId, assistantMessageId, chunk);
         },
         (citations) => {
-          // Add citations to the message
           addCitations(conversationId, assistantMessageId, citations);
         },
         (suggestions) => {
-          // Add suggestions to the message
           addSuggestions(conversationId, assistantMessageId, suggestions);
         },
         (conversationId) => {
-          // Handle completion
           console.log('Stream completed for conversation:', conversationId);
         },
         abortControllerRef.current.signal
@@ -119,12 +139,10 @@ export function PromptForm() {
         console.log('Stream aborted');
       } else {
         console.error('Streaming error:', error);
-        // Add error message
         updateMessageContent(conversationId, assistantMessageId, 
           'Sorry, I encountered an error. Please try again.');
       }
     } finally {
-      // Clean up
       setMessageStreaming(conversationId, assistantMessageId, false);
       stopStreaming();
       abortControllerRef.current = null;
@@ -137,7 +155,6 @@ export function PromptForm() {
   });
 
   React.useEffect(() => {
-    // Instant focus on mount
     handleFocus();
   }, []);
 
@@ -149,34 +166,85 @@ export function PromptForm() {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="relative flex w-full items-center"
-    >
-      <Textarea
-        ref={textareaRef}
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask anything..."
-        className="min-h-[60px] w-full resize-none rounded-xl border border-input bg-background p-4 pr-20 shadow-sm"
-        rows={1}
-        disabled={streaming}
-      />
-      <Button
-        type={streaming ? "button" : "submit"}
-        size="icon"
-        className="absolute right-4 top-1/2 -translate-y-1/2"
-        disabled={!prompt.trim() && !streaming}
-        onClick={streaming ? handleStopStreaming : undefined}
-        aria-label={streaming ? "Stop generating" : "Send message"}
+    <div className="space-y-3">
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
+          {attachments.map((attachment) => (
+            <div key={attachment.id} className="relative group">
+              {attachment.type === 'image' && (
+                <div className="relative">
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    className="h-16 w-16 object-cover rounded-md border"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeAttachment(attachment.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="relative flex w-full items-center gap-2"
       >
-        {streaming ? (
-          <StopCircle className="h-5 w-5" />
-        ) : (
-          <Send className="h-5 w-5" />
-        )}
-      </Button>
-    </form>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-10 w-10 flex-shrink-0"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={streaming}
+        >
+          <Paperclip className="h-4 w-4" />
+        </Button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        <div className="relative flex-1">
+          <Textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything... or upload an image"
+            className="min-h-[60px] w-full resize-none rounded-xl border border-input bg-background p-4 pr-20 shadow-sm"
+            rows={1}
+            disabled={streaming}
+          />
+          <Button
+            type={streaming ? "button" : "submit"}
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2"
+            disabled={(!prompt.trim() && attachments.length === 0) || streaming}
+            onClick={streaming ? handleStopStreaming : undefined}
+            aria-label={streaming ? "Stop generating" : "Send message"}
+          >
+            {streaming ? (
+              <StopCircle className="h-5 w-5" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

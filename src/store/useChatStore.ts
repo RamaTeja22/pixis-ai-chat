@@ -19,6 +19,16 @@ export type Message = {
   isStreaming?: boolean;
   thumbsUp?: boolean;
   thumbsDown?: boolean;
+  attachments?: Attachment[];
+};
+
+export type Attachment = {
+  id: string;
+  type: 'image' | 'file';
+  name: string;
+  url: string;
+  size?: number;
+  mimeType?: string;
 };
 
 export type Conversation = {
@@ -38,12 +48,10 @@ export type Folder = {
 };
 
 type ChatStore = {
-  // Conversations
   conversations: Conversation[];
   currentConversationId: string | null;
   currentConversation: Conversation | null;
-  
-  // UI State
+
   streaming: boolean;
   model: string;
   showSources: boolean;
@@ -52,14 +60,12 @@ type ChatStore = {
   theme: 'light' | 'dark' | 'system';
   sidebarOpen: boolean;
   
-  // Actions
   createConversation: (title?: string) => string;
   deleteConversation: (id: string) => void;
   renameConversation: (id: string, title: string) => void;
   setCurrentConversation: (id: string) => void;
   
-        // Messages
-      addMessage: (conversationId: string, message: Omit<Message, 'id' | 'timestamp'>) => string;
+  addMessage: (conversationId: string, message: Omit<Message, 'id' | 'timestamp'>) => string;
   updateMessageContent: (conversationId: string, messageId: string, content: string) => void;
   appendMessageContent: (conversationId: string, messageId: string, contentChunk: string) => void;
   setMessageStreaming: (conversationId: string, messageId: string, streaming: boolean) => void;
@@ -69,12 +75,11 @@ type ChatStore = {
   removeMessagePair: (conversationId: string, messageId: string) => void;
   thumbsUpMessage: (conversationId: string, messageId: string) => void;
   thumbsDownMessage: (conversationId: string, messageId: string) => void;
+  addAttachmentToMessage: (conversationId: string, messageId: string, attachment: Attachment) => void;
   
-  // Streaming
   startStreaming: () => void;
   stopStreaming: () => void;
   
-  // Settings
   setModel: (model: string) => void;
   setShowSources: (show: boolean) => void;
   setShowFollowUps: (show: boolean) => void;
@@ -82,7 +87,6 @@ type ChatStore = {
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setSidebarOpen: (open: boolean) => void;
   
-  // Folders
   folders: Folder[];
   createFolder: (name: string) => void;
   deleteFolder: (id: string) => void;
@@ -95,7 +99,6 @@ const generateId = () => Math.random().toString(36).substring(2, 15);
 export const useChatStore = create<ChatStore>()(
   persist(
     (set, get) => ({
-      // Initial state
       conversations: [],
       currentConversationId: null,
       currentConversation: null,
@@ -108,7 +111,6 @@ export const useChatStore = create<ChatStore>()(
       sidebarOpen: true,
       folders: [],
 
-      // Conversation actions
       createConversation: (title = 'New Chat') => {
         const id = generateId();
         const conversation: Conversation = {
@@ -163,7 +165,6 @@ export const useChatStore = create<ChatStore>()(
         });
       },
 
-      // Message actions
       addMessage: (conversationId, message) => {
         const newMessage: Message = {
           ...message,
@@ -341,7 +342,6 @@ export const useChatStore = create<ChatStore>()(
           const messagesToRemove = [messageId];
 
           if (messageToDelete.role === 'assistant') {
-            // If deleting an assistant message, also delete the preceding user message
             if (messageIndex > 0) {
               const userMessage = conversation.messages[messageIndex - 1];
               if (userMessage.role === 'user') {
@@ -349,7 +349,6 @@ export const useChatStore = create<ChatStore>()(
               }
             }
           } else if (messageToDelete.role === 'user') {
-            // If deleting a user message, also delete the following assistant message
             if (messageIndex < conversation.messages.length - 1) {
               const assistantMessage = conversation.messages[messageIndex + 1];
               if (assistantMessage.role === 'assistant') {
@@ -425,11 +424,32 @@ export const useChatStore = create<ChatStore>()(
         }));
       },
 
-      // Streaming
+      addAttachmentToMessage: (conversationId, messageId, attachment) => {
+        set((state) => ({
+          conversations: state.conversations.map(c =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  messages: c.messages.map(m =>
+                    m.id === messageId ? { ...m, attachments: [...(m.attachments || []), attachment] } : m
+                  ),
+                }
+              : c
+          ),
+          currentConversation: state.currentConversation?.id === conversationId
+            ? {
+                ...state.currentConversation,
+                messages: state.currentConversation.messages.map(m =>
+                  m.id === messageId ? { ...m, attachments: [...(m.attachments || []), attachment] } : m
+                ),
+              }
+            : state.currentConversation,
+        }));
+      },
+
       startStreaming: () => set({ streaming: true }),
       stopStreaming: () => set({ streaming: false }),
 
-      // Settings
       setModel: (model) => set({ model }),
       setShowSources: (show) => set({ showSources: show }),
       setShowFollowUps: (show) => set({ showFollowUps: show }),
@@ -437,7 +457,6 @@ export const useChatStore = create<ChatStore>()(
       setTheme: (theme) => set({ theme }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
-      // Folders
       createFolder: (name) => {
         const folder: Folder = {
           id: generateId(),

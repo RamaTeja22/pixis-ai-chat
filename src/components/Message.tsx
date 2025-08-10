@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, RotateCcw, Trash2, ThumbsUp, ThumbsDown, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, RotateCcw, Trash2, ThumbsUp, ThumbsDown, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Message as MessageType, Citation, Attachment } from '@/store/useChatStore';
 import { cn } from '@/lib/utils';
 import { highlight } from '@/lib/shiki';
 import MessageActions from './MessageActions';
 import FollowUpChips from './FollowUpChips';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface MessageProps {
   message: MessageType;
@@ -33,12 +34,17 @@ const Message: React.FC<MessageProps> = ({
   const [activeTab, setActiveTab] = useState<'answer' | 'sources'>('answer');
   const [copied, setCopied] = useState(false);
   const [highlightedContent, setHighlightedContent] = useState<React.ReactNode[]>([]);
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
+  const [showRightRail, setShowRightRail] = useState(false);
 
-  // Process content highlighting when message content changes
   useEffect(() => {
     const processContent = async () => {
-      const processed = await renderCodeBlock(message.content);
-      setHighlightedContent(processed);
+      if (message.content.includes('```')) {
+        const processed = await renderCodeBlock(message.content);
+        setHighlightedContent(processed);
+      } else {
+        setHighlightedContent(renderContent(message.content));
+      }
     };
     processContent();
   }, [message.content]);
@@ -71,21 +77,23 @@ const Message: React.FC<MessageProps> = ({
   };
 
   const handleCitationClick = (citation: Citation) => {
-    // Open citation URL in new tab (Perplexity style)
-    window.open(citation.url, '_blank');
+    setSelectedCitation(citation);
+    setShowRightRail(true);
+  };
+
+  const closeRightRail = () => {
+    setShowRightRail(false);
+    setSelectedCitation(null);
   };
 
   const renderContent = (content: string) => {
-    // Split content into paragraphs and process each
     const paragraphs = content.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
-      // Check if paragraph contains citations
       const citationRegex = /\[(\d+)\]/g;
       const citations = Array.from(paragraph.matchAll(citationRegex));
       
       if (citations.length > 0) {
-        // Process paragraph with citations
         let lastIndex = 0;
         const elements: React.ReactNode[] = [];
         
@@ -94,7 +102,6 @@ const Message: React.FC<MessageProps> = ({
           const citation = message.citations?.find((c: Citation) => c.id === citationId);
           const matchStart = match.index!;
           
-          // Add text before citation
           if (matchStart > lastIndex) {
             const textBefore = paragraph.slice(lastIndex, matchStart);
             if (textBefore.trim()) {
@@ -106,7 +113,6 @@ const Message: React.FC<MessageProps> = ({
             }
           }
           
-          // Add citation chip
           if (citation) {
             elements.push(
               <CitationChip
@@ -120,7 +126,6 @@ const Message: React.FC<MessageProps> = ({
           lastIndex = matchStart + match[0].length;
         });
         
-        // Add remaining text after last citation
         if (lastIndex < paragraph.length) {
           const remainingText = paragraph.slice(lastIndex);
           if (remainingText.trim()) {
@@ -138,7 +143,6 @@ const Message: React.FC<MessageProps> = ({
           </p>
         );
       } else {
-        // Simple paragraph without citations
         return (
           <p key={index} className="mb-4">
             {paragraph}
@@ -160,7 +164,6 @@ const Message: React.FC<MessageProps> = ({
       const matchStart = match.index;
       const matchEnd = matchStart + match[0].length;
 
-      // Add text before code block with citation processing
       if (matchStart > lastIndex) {
         const textBefore = content.slice(lastIndex, matchStart);
         if (textBefore.trim()) {
@@ -172,7 +175,6 @@ const Message: React.FC<MessageProps> = ({
         }
       }
 
-      // Add code block with proper async highlighting
       try {
         const highlightedCode = await highlight(code, language);
         parts.push(
@@ -201,7 +203,6 @@ const Message: React.FC<MessageProps> = ({
         );
       } catch (error) {
         console.error('Error highlighting code:', error);
-        // Fallback to plain code if highlighting fails
         parts.push(
           <div key={`code-${matchStart}`} className="mb-4">
             <div className="bg-muted rounded-lg overflow-hidden">
@@ -229,7 +230,6 @@ const Message: React.FC<MessageProps> = ({
       lastIndex = matchEnd;
     }
 
-    // Add remaining text after last code block with citation processing
     if (lastIndex < content.length) {
       const remainingText = content.slice(lastIndex);
       if (remainingText.trim()) {
@@ -275,11 +275,9 @@ const Message: React.FC<MessageProps> = ({
     );
   }
 
-  // Assistant message with Perplexity-style layout
   return (
     <div className="flex items-start gap-4">
       <div className="flex-1 min-w-0">
-        {/* Tabs - only show Sources tab when citations are available */}
         <div className="flex border-b mb-4">
           <button
             onClick={() => setActiveTab('answer')}
@@ -307,10 +305,8 @@ const Message: React.FC<MessageProps> = ({
           )}
         </div>
 
-        {/* Tab Content */}
         {activeTab === 'answer' ? (
           <div>
-            {/* Source Cards at the top - only show when citations are available */}
             {message.citations && message.citations.length > 0 && (
               <div className="mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -325,12 +321,10 @@ const Message: React.FC<MessageProps> = ({
               </div>
             )}
 
-            {/* Answer Content */}
             <div className="prose prose-sm max-w-none dark:prose-invert">
               {highlightedContent}
             </div>
 
-            {/* Follow-up chips */}
             {message.suggestions && message.suggestions.length > 0 && (
               <div className="mt-6">
                 <FollowUpChips
@@ -341,7 +335,6 @@ const Message: React.FC<MessageProps> = ({
             )}
           </div>
         ) : (
-          /* Sources Tab */
           <div>
             {message.citations && message.citations.length > 0 ? (
               <div className="space-y-3">
@@ -360,7 +353,6 @@ const Message: React.FC<MessageProps> = ({
           </div>
         )}
 
-        {/* Message Actions */}
         <div className="mt-4 flex items-center gap-2">
           <MessageActions
             message={message}
@@ -373,11 +365,90 @@ const Message: React.FC<MessageProps> = ({
           />
         </div>
       </div>
+
+      {showRightRail && selectedCitation && (
+        <motion.div
+          initial={{ x: 400, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 400, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="fixed right-0 top-0 h-full w-96 bg-background border-l shadow-2xl z-50 overflow-y-auto"
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold">Source Details</h3>
+              <button
+                onClick={closeRightRail}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                {selectedCitation.favicon && (
+                  <img
+                    src={selectedCitation.favicon}
+                    alt=""
+                    className="w-8 h-8 rounded-sm flex-shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-lg mb-2 line-clamp-2">
+                    {selectedCitation.title}
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {selectedCitation.domain}
+                  </p>
+                  <a
+                    href={selectedCitation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Visit Source
+                  </a>
+                </div>
+              </div>
+
+              {selectedCitation.snippet && (
+                <div className="p-4 bg-muted/20 rounded-lg">
+                  <h5 className="font-medium text-sm mb-2 text-muted-foreground">Preview</h5>
+                  <p className="text-sm leading-relaxed">{selectedCitation.snippet}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => window.open(selectedCitation.url, '_blank')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Source
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedCitation.url);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy URL
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
 
-// Source Card Component
 const SourceCard: React.FC<{
   citation: Citation;
   onClick: () => void;
@@ -423,31 +494,65 @@ const SourceCard: React.FC<{
   );
 };
 
-// Citation Chip Component (simplified - no tooltip needed)
 const CitationChip: React.FC<{
   citation: Citation;
   onClick: () => void;
 }> = ({ citation, onClick }) => {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-all duration-200 cursor-pointer border border-primary/20 hover:border-primary/30 shadow-sm"
-    >
-      <span className="font-semibold">[{citation.id}]</span>
-      {citation.favicon && (
-        <img
-          src={citation.favicon}
-          alt=""
-          className="w-4 h-4 rounded-sm"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
+  const tooltipContent = (
+    <div className="max-w-xs p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        {citation.favicon && (
+          <img
+            src={citation.favicon}
+            alt=""
+            className="w-4 h-4 rounded-sm flex-shrink-0 mt-0.5"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-sm line-clamp-2 mb-1">
+            {citation.title}
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            {citation.domain}
+          </p>
+        </div>
+      </div>
+      {citation.snippet && (
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {citation.snippet}
+        </p>
       )}
-      <span className="truncate max-w-36 font-medium">{citation.domain}</span>
-    </motion.button>
+      <p className="text-xs text-primary font-medium">
+        Click to view details
+      </p>
+    </div>
+  );
+
+  return (
+    <Tooltip content={tooltipContent} side="top">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClick}
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-all duration-200 cursor-pointer border border-primary/20 hover:border-primary/30 shadow-sm"
+      >
+        <span className="font-semibold">[{citation.id}]</span>
+        {citation.favicon && (
+          <img
+            src={citation.favicon}
+            alt=""
+            className="w-4 h-4 rounded-sm"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
+        <span className="truncate max-w-36 font-medium">{citation.domain}</span>
+      </motion.button>
+    </Tooltip>
   );
 };
 

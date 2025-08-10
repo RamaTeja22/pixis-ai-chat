@@ -54,6 +54,70 @@ const mockCitations: Citation[] = [
     domain: "tailwindcss.com",
     favicon: "https://tailwindcss.com/favicon.ico",
     snippet: "A utility-first CSS framework packed with classes like flex, pt-4, text-center and rotate-90 that can be composed to build any design."
+  },
+  {
+    id: 4,
+    title: "TypeScript Handbook - Basic Types",
+    url: "https://www.typescriptlang.org/docs/handbook/basic-types.html",
+    domain: "typescriptlang.org",
+    favicon: "https://www.typescriptlang.org/favicon.ico",
+    snippet: "TypeScript adds optional types to JavaScript that support tools for large-scale JavaScript applications for any browser, for any host, on any OS."
+  },
+  {
+    id: 5,
+    title: "Node.js Documentation - Getting Started",
+    url: "https://nodejs.org/en/docs/guides/getting-started-guide/",
+    domain: "nodejs.org",
+    favicon: "https://nodejs.org/static/images/favicon.ico",
+    snippet: "Node.js is a JavaScript runtime built on Chrome's V8 JavaScript engine. Node.js uses an event-driven, non-blocking I/O model."
+  },
+  {
+    id: 6,
+    title: "GitHub - Git Cheat Sheet",
+    url: "https://education.github.com/git-cheat-sheet-education.pdf",
+    domain: "github.com",
+    favicon: "https://github.com/favicon.ico",
+    snippet: "A quick reference guide to the most commonly used Git commands. Perfect for beginners and experienced developers alike."
+  },
+  {
+    id: 7,
+    title: "MDN Web Docs - JavaScript Guide",
+    url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+    domain: "developer.mozilla.org",
+    favicon: "https://developer.mozilla.org/favicon-48x48.png",
+    snippet: "The JavaScript Guide shows you how to use JavaScript and gives an overview of the language. If you need exhaustive information about a language feature."
+  },
+  {
+    id: 8,
+    title: "CSS-Tricks - Flexbox Complete Guide",
+    url: "https://css-tricks.com/snippets/css/a-guide-to-flexbox/",
+    domain: "css-tricks.com",
+    favicon: "https://css-tricks.com/apple-touch-icon.png",
+    snippet: "A complete guide to CSS flexbox. This comprehensive guide covers everything you need to know about flexbox layout."
+  },
+  {
+    id: 9,
+    title: "Stack Overflow - JavaScript Questions",
+    url: "https://stackoverflow.com/questions/tagged/javascript",
+    domain: "stackoverflow.com",
+    favicon: "https://stackoverflow.com/favicon.ico",
+    snippet: "Stack Overflow is the largest, most trusted online community for developers to learn, share their knowledge, and build their careers."
+  },
+  {
+    id: 10,
+    title: "W3Schools - HTML Tutorial",
+    url: "https://www.w3schools.com/html/",
+    domain: "w3schools.com",
+    favicon: "https://www.w3schools.com/favicon.ico",
+    snippet: "HTML is the standard markup language for Web pages. With HTML you can create your own Website. HTML is easy to learn."
+  },
+  {
+    id: 11,
+    title: "Dev.to - Web Development Articles",
+    url: "https://dev.to/t/webdev",
+    domain: "dev.to",
+    favicon: "https://dev.to/assets/favicon-32x32.png",
+    snippet: "Dev.to is a community of software developers getting together to help one another out. The software industry relies on collaboration and networked learning."
   }
 ];
 
@@ -66,6 +130,15 @@ const mockSuggestions = [
 
         async function* generateMockStream(message: string) {
           let response = `Here's a comprehensive answer about ${message.toLowerCase()}. This is a detailed explanation that covers all the important aspects you need to know [1]. The response includes multiple paragraphs with relevant information and examples [2]. You can find more details in the official documentation [3].`;
+          
+          // Add more citations to showcase 8 sources (reduced from 22)
+          response += `\n\nFor advanced users, there are excellent resources on TypeScript [4] and Node.js [5] that provide deeper insights. If you're working with version control, GitHub offers comprehensive guides [6]. The Mozilla Developer Network [7] is an invaluable resource for web standards and best practices.`;
+          
+          response += `\n\nWhen it comes to CSS layout, Flexbox [8] is an essential tool. For community support and problem-solving, Stack Overflow [9] is an excellent platform. Learning platforms like W3Schools [10] offer structured courses.`;
+          
+          response += `\n\nFor rapid prototyping and testing, online editors are indispensable. Browser compatibility can be checked using various tools, while modern development practices are documented at multiple sources. Interactive learning makes CSS concepts fun and memorable.`;
+          
+          response += `\n\nJavaScript fundamentals are thoroughly covered at multiple resources. For React applications, routing solutions and state management are industry standards. Finally, deployment platforms make it easy to get your applications online.`;
           
           if (message.toLowerCase().includes('javascript') || message.toLowerCase().includes('js')) {
             response += `\n\nHere's a JavaScript example:\n\n\`\`\`javascript\nfunction greet(name) {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(greet('World'));\n\`\`\``;
@@ -209,6 +282,9 @@ class ChatAPI {
     let fullResponse = '';
     const conversationId = `mock-${Date.now()}`;
 
+    // Don't add citations immediately - wait for streaming to start
+    // This ensures Answer tab appears first, then Sources tab and cards
+
     try {
       for await (const chunk of generator) {
         if (abortSignal?.aborted) {
@@ -218,19 +294,22 @@ class ChatAPI {
         console.log('Mock streaming chunk:', chunk);
         fullResponse += chunk;
         onChunk(chunk);
+        
+        // Add citations after first few chunks (when streaming has started)
+        if (fullResponse.length > 50 && onCitations) {
+          onCitations(mockCitations);
+          // Clear the callback to prevent multiple calls
+          onCitations = undefined;
+        }
       }
 
       setTimeout(() => {
-        onCitations?.(mockCitations);
-      }, 1000);
-
-      setTimeout(() => {
         onSuggestions?.(mockSuggestions);
-      }, 1500);
+      }, 500);
 
       setTimeout(() => {
         onComplete?.(conversationId);
-      }, 2000);
+      }, 1000);
 
       return fullResponse;
     } catch (error) {

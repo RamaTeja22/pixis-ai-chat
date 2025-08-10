@@ -160,7 +160,7 @@ const Message: React.FC<MessageProps> = ({
       const matchStart = match.index;
       const matchEnd = matchStart + match[0].length;
 
-      // Add text before code block
+      // Add text before code block with citation processing
       if (matchStart > lastIndex) {
         const textBefore = content.slice(lastIndex, matchStart);
         if (textBefore.trim()) {
@@ -229,7 +229,7 @@ const Message: React.FC<MessageProps> = ({
       lastIndex = matchEnd;
     }
 
-    // Add remaining text after last code block
+    // Add remaining text after last code block with citation processing
     if (lastIndex < content.length) {
       const remainingText = content.slice(lastIndex);
       if (remainingText.trim()) {
@@ -279,7 +279,7 @@ const Message: React.FC<MessageProps> = ({
   return (
     <div className="flex items-start gap-4">
       <div className="flex-1 min-w-0">
-        {/* Tabs */}
+        {/* Tabs - only show Sources tab when citations are available */}
         <div className="flex border-b mb-4">
           <button
             onClick={() => setActiveTab('answer')}
@@ -292,27 +292,29 @@ const Message: React.FC<MessageProps> = ({
           >
             Answer
           </button>
-          <button
-            onClick={() => setActiveTab('sources')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
-              activeTab === 'sources'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Sources
-          </button>
+          {message.citations && message.citations.length > 0 && (
+            <button
+              onClick={() => setActiveTab('sources')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                activeTab === 'sources'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Sources({message.citations.length})
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
         {activeTab === 'answer' ? (
           <div>
-            {/* Source Cards at the top */}
+            {/* Source Cards at the top - only show when citations are available */}
             {message.citations && message.citations.length > 0 && (
               <div className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {message.citations.slice(0, 4).map((citation: Citation) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {message.citations.slice(0, 6).map((citation: Citation) => (
                     <SourceCard
                       key={citation.id}
                       citation={citation}
@@ -416,7 +418,7 @@ const SourceCard: React.FC<{
           )}
         </div>
         <ExternalLink className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-      </div>
+  </div>
     </motion.button>
   );
 };

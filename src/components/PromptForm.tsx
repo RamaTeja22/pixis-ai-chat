@@ -233,7 +233,7 @@ export function PromptForm() {
             type={streaming ? "button" : "submit"}
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-primary hover:bg-primary/90 shadow-lg"
-            disabled={(!prompt.trim() && attachments.length === 0) || streaming}
+            disabled={!streaming && (!prompt.trim() && attachments.length === 0)}
             onClick={streaming ? handleStopStreaming : undefined}
             aria-label={streaming ? "Stop generating" : "Send message"}
           >

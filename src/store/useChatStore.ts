@@ -7,6 +7,7 @@ export type Citation = {
   url: string;
   domain: string;
   favicon?: string;
+  snippet?: string;
 };
 
 export type Message = {
@@ -54,7 +55,6 @@ type ChatStore = {
 
   streaming: boolean;
   model: string;
-  showSources: boolean;
   showFollowUps: boolean;
   messageWidth: 'compact' | 'comfortable' | 'wide';
   theme: 'light' | 'dark' | 'system';
@@ -81,7 +81,6 @@ type ChatStore = {
   stopStreaming: () => void;
   
   setModel: (model: string) => void;
-  setShowSources: (show: boolean) => void;
   setShowFollowUps: (show: boolean) => void;
   setMessageWidth: (width: 'compact' | 'comfortable' | 'wide') => void;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
@@ -104,7 +103,6 @@ export const useChatStore = create<ChatStore>()(
       currentConversation: null,
       streaming: false,
       model: 'Balanced',
-      showSources: true,
       showFollowUps: true,
       messageWidth: 'comfortable',
       theme: 'system',
@@ -451,7 +449,7 @@ export const useChatStore = create<ChatStore>()(
       stopStreaming: () => set({ streaming: false }),
 
       setModel: (model) => set({ model }),
-      setShowSources: (show) => set({ showSources: show }),
+
       setShowFollowUps: (show) => set({ showFollowUps: show }),
       setMessageWidth: (width) => set({ messageWidth: width }),
       setTheme: (theme) => set({ theme }),
@@ -498,7 +496,7 @@ export const useChatStore = create<ChatStore>()(
         conversations: state.conversations,
         currentConversationId: state.currentConversationId,
         model: state.model,
-        showSources: state.showSources,
+
         showFollowUps: state.showFollowUps,
         messageWidth: state.messageWidth,
         theme: state.theme,

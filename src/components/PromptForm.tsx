@@ -196,17 +196,17 @@ export function PromptForm() {
 
       <form
         onSubmit={handleSubmit}
-        className="relative flex w-full items-center gap-2"
+        className="relative flex w-full items-center gap-3"
       >
         <Button
           type="button"
           size="icon"
           variant="outline"
-          className="h-10 w-10 flex-shrink-0"
+          className="h-12 w-12 flex-shrink-0 border-2 border-input/50 hover:border-input"
           onClick={() => fileInputRef.current?.click()}
           disabled={streaming}
         >
-          <Paperclip className="h-4 w-4" />
+          <Paperclip className="h-5 w-5" />
         </Button>
 
         <input
@@ -225,14 +225,14 @@ export function PromptForm() {
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask anything... or upload an image"
-            className="min-h-[60px] w-full resize-none rounded-xl border border-input bg-background p-4 pr-20 shadow-sm"
+            className="min-h-[64px] w-full resize-none rounded-2xl border-2 border-input/50 bg-background p-5 pr-20 shadow-lg hover:border-input focus:border-primary transition-colors text-lg"
             rows={1}
             disabled={streaming}
           />
           <Button
             type={streaming ? "button" : "submit"}
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2"
+            className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-primary hover:bg-primary/90 shadow-lg"
             disabled={(!prompt.trim() && attachments.length === 0) || streaming}
             onClick={streaming ? handleStopStreaming : undefined}
             aria-label={streaming ? "Stop generating" : "Send message"}

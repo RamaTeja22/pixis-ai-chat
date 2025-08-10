@@ -53,30 +53,31 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b p-2 flex items-center justify-between h-14 shrink-0">
-      <div className="flex items-center gap-2">
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 flex items-center justify-between h-16 shrink-0">
+      <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
           size="icon" 
           aria-label="Toggle sidebar"
           onClick={toggleSidebar}
-          className="lg:hidden"
+          className="lg:hidden hover:bg-muted"
         >
           {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
         </Button>
         <ModelSelector value={model} onChange={setModel} />
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <Button 
           variant="ghost" 
-          size="icon" 
-          aria-label="New Chat"
+          size="sm"
+          className="h-9 px-4 hover:bg-muted"
           onClick={handleNewChat}
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-4 w-4 mr-2" />
+          New Chat
         </Button>
-        <Button variant="ghost" size="icon" aria-label="History">
-          <Folder className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-muted" aria-label="History">
+          <Folder className="h-4 w-4" />
         </Button>
         <SettingsModal />
       </div>

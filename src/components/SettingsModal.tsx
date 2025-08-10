@@ -35,8 +35,6 @@ export function SettingsModal() {
   const {
     model,
     setModel,
-    showSources,
-    setShowSources,
     showFollowUps,
     setShowFollowUps,
     messageWidth,
@@ -160,20 +158,6 @@ export function SettingsModal() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Data & Privacy</h3>
             
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="show-sources">Show Sources</Label>
-                <p className="text-sm text-muted-foreground">
-                  Display citation sources in responses
-                </p>
-              </div>
-              <Switch
-                id="show-sources"
-                checked={showSources}
-                onCheckedChange={setShowSources}
-              />
-            </div>
-
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="show-followups">Show Follow-up Suggestions</Label>

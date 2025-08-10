@@ -18,13 +18,19 @@ const Tooltip = ({ children, content, side = "top", className }: TooltipProps) =
   const [isVisible, setIsVisible] = React.useState(false)
   const [position, setPosition] = React.useState({ x: 0, y: 0 })
   const triggerRef = React.useRef<HTMLDivElement>(null)
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
     setIsVisible(true)
   }
 
   const handleMouseLeave = () => {
-    setIsVisible(false)
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(false)
+    }, 100)
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -32,10 +38,18 @@ const Tooltip = ({ children, content, side = "top", className }: TooltipProps) =
       const rect = triggerRef.current.getBoundingClientRect()
       setPosition({
         x: rect.left + rect.width / 2,
-        y: side === "top" ? rect.top - 8 : rect.bottom + 8
+        y: side === "top" ? rect.top - 12 : rect.bottom + 12
       })
     }
   }
+
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div
@@ -49,8 +63,9 @@ const Tooltip = ({ children, content, side = "top", className }: TooltipProps) =
       {isVisible && (
         <div
           className={cn(
-            "fixed z-50 px-3 py-1.5 text-sm bg-popover border rounded-md shadow-md",
-            "animate-in fade-in-0 zoom-in-95",
+            "fixed z-[9999] px-3 py-2 text-sm bg-popover border rounded-md shadow-lg",
+            "animate-in fade-in-0 zoom-in-95 duration-150",
+            "pointer-events-none",
             className
           )}
           style={{

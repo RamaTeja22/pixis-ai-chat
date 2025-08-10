@@ -36,21 +36,24 @@ const mockCitations: Citation[] = [
     title: "Next.js Documentation - Getting Started",
     url: "https://nextjs.org/docs/getting-started",
     domain: "nextjs.org",
-    favicon: "https://nextjs.org/favicon.ico"
+    favicon: "https://nextjs.org/favicon.ico",
+    snippet: "Learn how to get started with Next.js, the React framework for production. Build full-stack web applications with the App Router."
   },
   {
     id: 2,
     title: "React Documentation - Hooks",
     url: "https://react.dev/reference/react/hooks",
     domain: "react.dev",
-    favicon: "https://react.dev/favicon.ico"
+    favicon: "https://react.dev/favicon.ico",
+    snippet: "Hooks are functions that let you use state and other React features in function components. Learn about useState, useEffect, and more."
   },
   {
     id: 3,
     title: "Tailwind CSS - Utility-First CSS Framework",
     url: "https://tailwindcss.com/docs",
     domain: "tailwindcss.com",
-    favicon: "https://tailwindcss.com/favicon.ico"
+    favicon: "https://tailwindcss.com/favicon.ico",
+    snippet: "A utility-first CSS framework packed with classes like flex, pt-4, text-center and rotate-90 that can be composed to build any design."
   }
 ];
 

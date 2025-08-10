@@ -3,10 +3,9 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { ChatWelcome } from '@/components/ChatWelcome';
-import { ChatMessages } from '@/components/ChatMessages';
 import { PromptForm } from '@/components/PromptForm';
-import { ContextPanel } from '@/components/ContextPanel';
 import { useChatStore } from '@/store/useChatStore';
+import ChatMessages from "@/components/ChatMessages";
 
 export default function Home() {
   const { currentConversation, sidebarOpen } = useChatStore();
@@ -32,7 +31,7 @@ export default function Home() {
         />
       )}
 
-      {/* Main */}
+      {/* Main Content - Full Width */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <div className="flex-1 flex flex-col overflow-y-auto">
@@ -42,21 +41,16 @@ export default function Home() {
             <ChatMessages />
           )}
         </div>
-        {/* Desktop prompt form */}
-        <div className="hidden md:block p-4 border-t bg-background">
-          <PromptForm />
-        </div>
+        
+        {/* Conversation prompt form - only show when in conversation view */}
+        {currentConversation && currentConversation.messages.length > 0 && (
+          <div className="p-6 border-t bg-background">
+            <div className="max-w-4xl mx-auto">
+              <PromptForm />
+            </div>
+          </div>
+        )}
       </main>
-
-      {/* Right Rail - Hidden on mobile */}
-      <aside className="w-80 border-l bg-muted/30 hidden xl:block">
-        <ContextPanel />
-      </aside>
-
-      {/* Mobile prompt form - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:hidden z-50">
-        <PromptForm />
-      </div>
     </div>
   );
 }

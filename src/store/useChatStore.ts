@@ -88,6 +88,7 @@ type ChatStore = {
   
   folders: Folder[];
   createFolder: (name: string) => void;
+  renameFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
   moveConversationToFolder: (conversationId: string, folderId: string) => void;
   removeConversationFromFolder: (conversationId: string) => void;
@@ -465,6 +466,14 @@ export const useChatStore = create<ChatStore>()(
         set((state) => ({ folders: [...state.folders, folder] }));
       },
 
+      renameFolder: (id, name) => {
+        set((state) => ({
+          folders: state.folders.map(f => 
+            f.id === id ? { ...f, name } : f
+          ),
+        }));
+      },
+
       deleteFolder: (id) => {
         set((state) => ({ folders: state.folders.filter(f => f.id !== id) }));
       },
@@ -472,10 +481,9 @@ export const useChatStore = create<ChatStore>()(
       moveConversationToFolder: (conversationId, folderId) => {
         set((state) => ({
           folders: state.folders.map(f => {
-            if (f.id === folderId) {
+            if (folderId && f.id === folderId) {
               return { ...f, conversationIds: [...f.conversationIds, conversationId] };
             }
-            // Remove from other folders
             return { ...f, conversationIds: f.conversationIds.filter(id => id !== conversationId) };
           }),
         }));

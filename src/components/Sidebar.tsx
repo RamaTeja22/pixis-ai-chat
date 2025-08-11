@@ -8,7 +8,6 @@ import { Plus, Folder as FolderIcon, MessageSquare, Trash2, Edit, MoreHorizontal
 import { useChatStore, Conversation, Folder } from '@/store/useChatStore';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Skeleton loader component
 const SkeletonList = () => (
   <div className="space-y-2">
     {[...Array(5)].map((_, i) => (
@@ -17,7 +16,6 @@ const SkeletonList = () => (
   </div>
 );
 
-// Sidebar item component with hover actions
 const SidebarItem = ({
   conversation,
   isActive,
@@ -25,7 +23,9 @@ const SidebarItem = ({
   onRename,
   onDelete,
   onMoveToFolder,
+  onMoveOutOfFolder,
   folders,
+  currentFolderId,
 }: {
   conversation: Conversation;
   isActive: boolean;
@@ -33,7 +33,9 @@ const SidebarItem = ({
   onRename: (id: string, newTitle: string) => void;
   onDelete: (id: string) => void;
   onMoveToFolder: (conversationId: string, folderId: string) => void;
+  onMoveOutOfFolder: (conversationId: string) => void;
   folders: Folder[];
+  currentFolderId?: string;
 }) => {
   const [isRenaming, setIsRenaming] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState(conversation.title);
@@ -117,9 +119,20 @@ const SidebarItem = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {currentFolderId && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveOutOfFolder(conversation.id);
+                }}
+              >
+                <FolderIcon className="h-4 w-4 mr-2" />
+                Move out of folder
+              </DropdownMenuItem>
+            )}
             {folders.length > 0 && (
               <>
-                {folders.map((folder) => (
+                {folders.filter(f => f.id !== currentFolderId).map((folder) => (
                   <DropdownMenuItem
                     key={folder.id}
                     onClick={(e) => {
@@ -150,36 +163,105 @@ const SidebarItem = ({
   );
 };
 
-// Folder component
 const FolderItem = ({
   folder,
   conversations,
   onSelectConversation,
   onRename,
   onDelete,
+  onRenameFolder,
+  onDeleteFolder,
 }: {
   folder: Folder;
   conversations: Conversation[];
   onSelectConversation: (id: string) => void;
   onRename: (id: string, newTitle: string) => void;
   onDelete: (id: string) => void;
+  onRenameFolder: (id: string, newName: string) => void;
+  onDeleteFolder: (id: string) => void;
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isRenaming, setIsRenaming] = React.useState(false);
+  const [newName, setNewName] = React.useState(folder.name);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const folderConversations = conversations.filter(c => 
     folder.conversationIds.includes(c.id)
   );
 
+  const handleRename = () => {
+    if (newName.trim() && newName !== folder.name) {
+      onRenameFolder(folder.id, newName.trim());
+    }
+    setIsRenaming(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRename();
+    } else if (e.key === 'Escape') {
+      setNewName(folder.name);
+      setIsRenaming(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
+
   return (
     <div className="space-y-1">
       <div 
-        className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-accent/50 cursor-pointer"
+        className="group relative flex items-center gap-2 rounded-md p-2 text-sm hover:bg-accent/50 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <FolderIcon className="h-4 w-4" />
-        <span className="flex-1">{folder.name}</span>
+        {isRenaming ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleRename}
+            className="flex-1 bg-transparent border-none outline-none text-sm"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="flex-1">{folder.name}</span>
+        )}
         <span className="text-xs text-muted-foreground">
           {folderConversations.length}
         </span>
+       
+        <div className="absolute right-2 flex items-center gap-1 rounded-md bg-accent p-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsRenaming(true);
+            }}
+            aria-label="Rename folder"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteFolder(folder.id);
+            }}
+            aria-label="Delete folder"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       
       {isExpanded && (
@@ -192,8 +274,10 @@ const FolderItem = ({
               onSelect={() => onSelectConversation(conversation.id)}
               onRename={onRename}
               onDelete={onDelete}
-              onMoveToFolder={() => {}} // Not needed for conversations already in folders
+              onMoveToFolder={() => {}} 
+              onMoveOutOfFolder={() => {}} 
               folders={[]}
+              currentFolderId={folder.id}
             />
           ))}
         </div>
@@ -212,7 +296,8 @@ export default function Sidebar() {
     renameConversation,
     setCurrentConversation,
     createFolder,
-
+    renameFolder,
+    deleteFolder,
     moveConversationToFolder,
   } = useChatStore();
 
@@ -236,6 +321,20 @@ export default function Sidebar() {
     moveConversationToFolder(conversationId, folderId);
   };
 
+  const handleRenameFolder = (id: string, newName: string) => {
+    renameFolder(id, newName);
+  };
+
+  const handleDeleteFolder = (id: string) => {
+    if (confirm('Are you sure you want to delete this folder? All conversations in it will be moved to the main list.')) {
+      deleteFolder(id);
+    }
+  };
+
+  const handleMoveOutOfFolder = (conversationId: string) => {
+    moveConversationToFolder(conversationId, '');
+  };
+
   const handleCreateFolder = () => {
     const name = prompt('Enter folder name:');
     if (name?.trim()) {
@@ -243,7 +342,6 @@ export default function Sidebar() {
     }
   };
 
-  // Get conversations not in folders
   const unassignedConversations = conversations.filter(conversation => 
     !folders.some(folder => folder.conversationIds.includes(conversation.id))
   );
@@ -273,6 +371,7 @@ export default function Sidebar() {
                   onRename={handleRename}
                   onDelete={handleDelete}
                   onMoveToFolder={handleMoveToFolder}
+                  onMoveOutOfFolder={handleMoveOutOfFolder}
                   folders={folders}
                 />
               ))}
@@ -303,6 +402,8 @@ export default function Sidebar() {
               onSelectConversation={handleSelectConversation}
               onRename={handleRename}
               onDelete={handleDelete}
+              onRenameFolder={handleRenameFolder}
+              onDeleteFolder={handleDeleteFolder}
             />
           ))}
         </div>

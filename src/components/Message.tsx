@@ -246,7 +246,7 @@ const Message: React.FC<MessageProps> = ({
 
   if (message.role === 'user') {
     return (
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 mr-6">
         <div className="flex-1 min-w-0">
           <div className="bg-muted/50 rounded-lg p-4">
             <p className="text-foreground whitespace-pre-wrap">{message.content}</p>
@@ -276,7 +276,7 @@ const Message: React.FC<MessageProps> = ({
   }
 
   return (
-    <div className="flex items-start gap-4">
+    <div className="flex items-start gap-4 mr-6">
       <div className="flex-1 min-w-0">
         <div className="flex border-b mb-4">
           <button
@@ -367,83 +367,101 @@ const Message: React.FC<MessageProps> = ({
       </div>
 
       {showRightRail && selectedCitation && (
-        <motion.div
-          initial={{ x: 400, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 400, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed right-0 top-0 h-full w-96 bg-background border-l shadow-2xl z-50 overflow-y-auto"
-        >
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Source Details</h3>
-              <button
-                onClick={closeRightRail}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <>
+          {/* Backdrop overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={closeRightRail}
+          />
+          
+          {/* Right Rail for Source Details */}
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed right-6 top-6 h-[calc(100vh-3rem)] w-96 bg-background border rounded-lg shadow-2xl z-50 overflow-y-auto"
+          >
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold">Source Details</h3>
+                <button
+                  onClick={closeRightRail}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
-                {selectedCitation.favicon && (
-                  <img
-                    src={selectedCitation.favicon}
-                    alt=""
-                    className="w-8 h-8 rounded-sm flex-shrink-0"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+              {/* Source Content */}
+              <div className="space-y-4">
+                {/* Source Header */}
+                <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg">
+                  {selectedCitation.favicon && (
+                    <img
+                      src={selectedCitation.favicon}
+                      alt=""
+                      className="w-8 h-8 rounded-sm flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-lg mb-2 line-clamp-2">
+                      {selectedCitation.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {selectedCitation.domain}
+                    </p>
+                    <a
+                      href={selectedCitation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Visit Source
+                    </a>
+                  </div>
+                </div>
+
+                {/* Source Snippet */}
+                {selectedCitation.snippet && (
+                  <div className="p-4 bg-muted/20 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-muted-foreground">Preview</h5>
+                    <p className="text-sm leading-relaxed">{selectedCitation.snippet}</p>
+                  </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-lg mb-2 line-clamp-2">
-                    {selectedCitation.title}
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {selectedCitation.domain}
-                  </p>
-                  <a
-                    href={selectedCitation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+
+                {/* Related Actions */}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => window.open(selectedCitation.url, '_blank')}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Visit Source
-                  </a>
+                    Open Source
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedCitation.url);
+                      // You could add a toast notification here
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy URL
+                  </button>
                 </div>
-              </div>
-
-              {selectedCitation.snippet && (
-                <div className="p-4 bg-muted/20 rounded-lg">
-                  <h5 className="font-medium text-sm mb-2 text-muted-foreground">Preview</h5>
-                  <p className="text-sm leading-relaxed">{selectedCitation.snippet}</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => window.open(selectedCitation.url, '_blank')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Open Source
-                </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(selectedCitation.url);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy URL
-                </button>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </>
       )}
     </div>
   );

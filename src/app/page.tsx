@@ -12,7 +12,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Left Sidebar - Collapsible */}
       <aside className={`
         fixed lg:relative inset-y-0 left-0 z-40
         w-80 border-r bg-muted/30 flex flex-col
@@ -23,7 +22,6 @@ export default function Home() {
         <Sidebar />
       </aside>
       
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -31,8 +29,7 @@ export default function Home() {
         />
       )}
 
-      {/* Main Content - Full Width */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden pr-6">
         <Header />
         <div className="flex-1 flex flex-col overflow-y-auto">
           {!currentConversation || currentConversation.messages.length === 0 ? (
@@ -42,7 +39,6 @@ export default function Home() {
           )}
         </div>
         
-        {/* Conversation prompt form - only show when in conversation view */}
         {currentConversation && currentConversation.messages.length > 0 && (
           <div className="p-6 border-t bg-background">
             <div className="max-w-4xl mx-auto">

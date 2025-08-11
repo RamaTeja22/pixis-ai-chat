@@ -75,8 +75,8 @@ const ChatMessages: React.FC = () => {
   };
 
   const handleCitationClick = (citation: Citation) => {
-    // Open citation URL in new tab (Perplexity style)
-    window.open(citation.url, '_blank');
+    // This is now handled within the Message component for the right rail
+    // The function is kept for interface compatibility
   };
 
   const handleThumbsUp = (messageId: string) => {
@@ -157,7 +157,7 @@ const ChatMessages: React.FC = () => {
   }
 
   return (
-    <div ref={scrollAreaRef} className="flex-1 overflow-y-auto">
+    <div ref={scrollAreaRef} className="flex-1 overflow-y-auto pr-6">
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
         {currentConversation.messages.map((message) => (
           <Message

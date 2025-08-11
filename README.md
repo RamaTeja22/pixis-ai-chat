@@ -170,8 +170,7 @@ data: [DONE]
 - `Cmd/Ctrl + K` - Open command palette (planned)
 - `Escape` - Cancel streaming or close modals
 
-## 🧪 Testing
-
+## Testing
 ### E2E Tests (Planned)
 
 ```bash
@@ -199,7 +198,7 @@ Tests will cover:
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Vercel
 
 1. **Connect Repository**
    - Link your GitHub repository to Vercel
@@ -215,45 +214,3 @@ Tests will cover:
 3. **Deploy**
    - Vercel will automatically deploy on push to main branch
    - Preview deployments for pull requests
-
-### Other Platforms
-
-The app can be deployed to any platform that supports Next.js:
-
-- Netlify
-- Railway
-- DigitalOcean App Platform
-- AWS Amplify
-
-## 🔮 Roadmap
-
-### Phase 2 (Next Sprint)
-- [ ] Command palette (Cmd/Ctrl+K)
-- [ ] Drag-and-drop for conversations/folders
-- [ ] "Ask over selection" toolbar
-- [ ] Local vector cache for related results
-
-### Phase 3 (Future)
-- [ ] Multi-provider authentication
-- [ ] Team/workspace sharing
-- [ ] Advanced analytics
-- [ ] Custom model configurations
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🙏 Acknowledgments
-
-- Inspired by Perplexity's beautiful UI design
-- Built with LibreChat's powerful backend
-- Uses shadcn/ui for accessible components
-- Powered by Next.js 14 and React 18

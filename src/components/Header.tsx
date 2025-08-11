@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Folder, ChevronsUpDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Plus, Folder, ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
 import { useChatStore } from '@/store/useChatStore';
 import { SettingsModal } from './SettingsModal';
 
@@ -21,23 +21,44 @@ function ModelSelector({
   onChange: (model: string) => void;
 }) {
   const models = ['Balanced', 'Creative', 'Precise'];
+  const [isChanging, setIsChanging] = React.useState(false);
+  
+  const handleModelChange = async (newModel: string) => {
+    if (newModel === value) return;
+    
+    setIsChanging(true);
+    await onChange(newModel);
+    
+    // Keep the indicator for a bit longer to show regeneration is happening
+    setTimeout(() => setIsChanging(false), 2000);
+  };
   
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 text-lg font-semibold">
-          <span>{value}</span>
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {models.map((model) => (
-          <DropdownMenuItem key={model} onSelect={() => onChange(model)}>
-            {model}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="relative">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2 text-lg font-semibold">
+            <span>{value}</span>
+            <ChevronsUpDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {models.map((model) => (
+            <DropdownMenuItem key={model} onSelect={() => handleModelChange(model)}>
+              {model}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {/* Regeneration indicator */}
+      {isChanging && (
+        <div className="absolute -top-2 -right-2 flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground text-xs rounded-full animate-pulse">
+          <Sparkles className="w-3 h-3" />
+          Regenerating...
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -76,6 +76,7 @@ type ChatStore = {
   thumbsUpMessage: (conversationId: string, messageId: string) => void;
   thumbsDownMessage: (conversationId: string, messageId: string) => void;
   addAttachmentToMessage: (conversationId: string, messageId: string, attachment: Attachment) => void;
+  regenerateLastResponse: (conversationId: string) => Promise<void>;
   
   startStreaming: () => void;
   stopStreaming: () => void;
@@ -110,15 +111,18 @@ export const useChatStore = create<ChatStore>()(
       sidebarOpen: true,
       folders: [],
 
+
+
       createConversation: (title = 'New Chat') => {
         const id = generateId();
+        const currentModel = get().model; // Get the current model at creation time
         const conversation: Conversation = {
           id,
           title,
           messages: [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
-          model: get().model,
+          model: currentModel,
         };
         
         set((state) => ({
@@ -217,8 +221,8 @@ export const useChatStore = create<ChatStore>()(
       },
 
       appendMessageContent: (conversationId, messageId, contentChunk) => {
-        set((state) => ({
-          conversations: state.conversations.map(c =>
+        set((state) => {
+          const updatedConversations = state.conversations.map(c =>
             c.id === conversationId
               ? {
                   ...c,
@@ -227,16 +231,22 @@ export const useChatStore = create<ChatStore>()(
                   ),
                 }
               : c
-          ),
-          currentConversation: state.currentConversation?.id === conversationId
+          );
+          
+          const updatedCurrentConversation = state.currentConversation?.id === conversationId
             ? {
                 ...state.currentConversation,
                 messages: state.currentConversation.messages.map(m =>
                   m.id === messageId ? { ...m, content: m.content + contentChunk } : m
                 ),
               }
-            : state.currentConversation,
-        }));
+            : state.currentConversation;
+          
+          return {
+            conversations: updatedConversations,
+            currentConversation: updatedCurrentConversation,
+          };
+        });
       },
 
       setMessageStreaming: (conversationId, messageId, streaming) => {
@@ -263,8 +273,8 @@ export const useChatStore = create<ChatStore>()(
       },
 
       addCitations: (conversationId, messageId, citations) => {
-        set((state) => ({
-          conversations: state.conversations.map(c =>
+        set((state) => {
+          const updatedConversations = state.conversations.map(c =>
             c.id === conversationId
               ? {
                   ...c,
@@ -273,16 +283,22 @@ export const useChatStore = create<ChatStore>()(
                   ),
                 }
               : c
-          ),
-          currentConversation: state.currentConversation?.id === conversationId
+          );
+          
+          const updatedCurrentConversation = state.currentConversation?.id === conversationId
             ? {
                 ...state.currentConversation,
                 messages: state.currentConversation.messages.map(m =>
                   m.id === messageId ? { ...m, citations } : m
                 ),
               }
-            : state.currentConversation,
-        }));
+            : state.currentConversation;
+          
+          return {
+            conversations: updatedConversations,
+            currentConversation: updatedCurrentConversation,
+          };
+        });
       },
 
       addSuggestions: (conversationId, messageId, suggestions) => {
@@ -449,7 +465,119 @@ export const useChatStore = create<ChatStore>()(
       startStreaming: () => set({ streaming: true }),
       stopStreaming: () => set({ streaming: false }),
 
-      setModel: (model) => set({ model }),
+      setModel: async (model) => {
+        const state = get();
+        const previousModel = state.model;
+        
+        // Update the model
+        set({ model });
+        
+        // Update all conversations to use the new model
+        set((state) => ({
+          conversations: state.conversations.map(c => ({ ...c, model })),
+          currentConversation: state.currentConversation
+            ? { ...state.currentConversation, model }
+            : null
+        }));
+        
+        // If we have a current conversation with messages, offer to regenerate
+        if (state.currentConversation && 
+            state.currentConversation.messages.length > 0 &&
+            previousModel !== model) {
+          
+          // Check if there's a user message followed by an assistant message
+          const messages = state.currentConversation.messages;
+          const lastUserIndex = messages.findLastIndex(m => m.role === 'user');
+          const lastAssistantIndex = messages.findLastIndex(m => m.role === 'assistant');
+          
+          if (lastUserIndex !== -1 && lastAssistantIndex > lastUserIndex) {
+            // Auto-regenerate with new model
+            setTimeout(() => {
+              get().regenerateLastResponse(state.currentConversation!.id);
+            }, 100);
+          }
+        }
+      },
+
+      regenerateLastResponse: async (conversationId: string) => {
+        const state = get();
+        const conversation = state.conversations.find(c => c.id === conversationId);
+        if (!conversation || conversation.messages.length === 0) return;
+
+        // Find the last user message and assistant message
+        const lastUserMessage = conversation.messages.filter(m => m.role === 'user').pop();
+        const lastAssistantMessage = conversation.messages.filter(m => m.role === 'assistant').pop();
+        
+        if (!lastUserMessage || !lastAssistantMessage) return;
+
+        // Remove the last assistant message
+        set((state) => ({
+          conversations: state.conversations.map(c =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  messages: c.messages.filter(m => m.id !== lastAssistantMessage.id)
+                }
+              : c
+          ),
+          currentConversation: state.currentConversation?.id === conversationId
+            ? {
+                ...state.currentConversation,
+                messages: state.currentConversation.messages.filter(m => m.id !== lastAssistantMessage.id)
+              }
+            : state.currentConversation,
+        }));
+
+        // Start streaming with new model
+        let newAssistantMessageId: string | undefined;
+        try {
+          const { chatAPI } = await import('@/lib/api');
+          newAssistantMessageId = get().addMessage(conversationId, {
+            role: 'assistant',
+            content: '',
+          });
+          
+          get().setMessageStreaming(conversationId, newAssistantMessageId, true);
+          get().startStreaming();
+
+          if (!newAssistantMessageId) {
+            throw new Error('Failed to create new assistant message');
+          }
+          
+          await chatAPI.streamChat(
+            {
+              message: lastUserMessage.content,
+              model: get().model,
+              conversationId,
+            },
+            (chunk) => {
+              get().appendMessageContent(conversationId, newAssistantMessageId!, chunk);
+            },
+            (citations) => {
+              console.log('regenerateLastResponse received citations:', citations);
+              get().addCitations(conversationId, newAssistantMessageId!, citations);
+            },
+            (suggestions) => {
+              get().addSuggestions(conversationId, newAssistantMessageId!, suggestions);
+            },
+            (conversationId) => {
+              console.log('Regeneration completed for conversation:', conversationId);
+            }
+          );
+        } catch (error) {
+          console.error('Regeneration error:', error);
+          // Add error message
+          get().addMessage(conversationId, {
+            role: 'assistant',
+            content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
+          });
+        } finally {
+          if (newAssistantMessageId) {
+            get().setMessageStreaming(conversationId, newAssistantMessageId, false);
+          }
+          get().stopStreaming();
+        }
+      },
 
       setShowFollowUps: (show) => set({ showFollowUps: show }),
       setMessageWidth: (width) => set({ messageWidth: width }),

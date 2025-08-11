@@ -64,19 +64,16 @@ const ChatMessages: React.FC = () => {
   const handleFollowUp = (prompt: string) => {
     if (!currentConversation) return;
     
-    // Add user message
     addMessage(currentConversation.id, {
       role: 'user',
       content: prompt,
     });
     
-    // Stream response
     handleStreamResponse(prompt);
   };
 
   const handleCitationClick = (citation: Citation) => {
-    // This is now handled within the Message component for the right rail
-    // The function is kept for interface compatibility
+   
   };
 
   const handleThumbsUp = (messageId: string) => {
@@ -89,46 +86,37 @@ const ChatMessages: React.FC = () => {
     thumbsDownMessage(currentConversation.id, messageId);
   };
 
-  // Stream response from API (for follow-up suggestions)
   const handleStreamResponse = async (prompt: string) => {
     if (!currentConversation) return;
 
-    // Add assistant message placeholder and get its ID
     const assistantMessageId = addMessage(currentConversation.id, {
       role: 'assistant',
       content: '',
     });
 
-    // Set streaming state
     setMessageStreaming(currentConversation.id, assistantMessageId, true);
     startStreaming();
 
     try {
-      // Import the API dynamically to avoid SSR issues
       const { chatAPI } = await import('@/lib/api');
 
       await chatAPI.streamChat(
         {
           message: prompt,
-          model: currentConversation.model,
+          model: useChatStore.getState().model,
           conversationId: currentConversation.id,
         },
         (chunk) => {
-          // Append chunk to the message
           console.log('ChatMessages received chunk:', chunk);
           appendMessageContent(currentConversation.id, assistantMessageId, chunk);
         },
         (citations) => {
-          // Add citations to the message
           addCitations(currentConversation.id, assistantMessageId, citations);
         },
         (suggestions) => {
-          // Add suggestions to the message
           addSuggestions(currentConversation.id, assistantMessageId, suggestions);
         },
         (conversationId) => {
-          // Handle completion
-          console.log('Stream completed for conversation:', conversationId);
         },
         abortControllerRef.current?.signal
       );
@@ -137,12 +125,10 @@ const ChatMessages: React.FC = () => {
         console.log('Stream aborted');
       } else {
         console.error('Streaming error:', error);
-        // Add error message
         updateMessageContent(currentConversation.id, assistantMessageId,
           'Sorry, I encountered an error. Please try again.');
       }
     } finally {
-      // Clean up
       setMessageStreaming(currentConversation.id, assistantMessageId, false);
       stopStreaming();
     }

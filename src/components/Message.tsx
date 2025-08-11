@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Copy, ExternalLink, RotateCcw, Trash2, ThumbsUp, ThumbsDown, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Message as MessageType, Citation, Attachment } from '@/store/useChatStore';
@@ -37,17 +37,7 @@ const Message: React.FC<MessageProps> = ({
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [showRightRail, setShowRightRail] = useState(false);
 
-  useEffect(() => {
-    const processContent = async () => {
-      if (message.content.includes('```')) {
-        const processed = await renderCodeBlock(message.content);
-        setHighlightedContent(processed);
-      } else {
-        setHighlightedContent(renderContent(message.content));
-      }
-    };
-    processContent();
-  }, [message.content]);
+  const displayCitations = message.citations;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -76,17 +66,17 @@ const Message: React.FC<MessageProps> = ({
     onFollowUp(prompt);
   };
 
-  const handleCitationClick = (citation: Citation) => {
+  const handleCitationClick = useCallback((citation: Citation) => {
     setSelectedCitation(citation);
     setShowRightRail(true);
-  };
+  }, []);
 
-  const closeRightRail = () => {
+  const closeRightRail = useCallback(() => {
     setShowRightRail(false);
     setSelectedCitation(null);
-  };
+  }, []);
 
-  const renderContent = (content: string) => {
+  const renderContent = useCallback((content: string) => {
     const paragraphs = content.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
@@ -137,38 +127,37 @@ const Message: React.FC<MessageProps> = ({
           }
         }
         
-        return (
-          <p key={index} className="mb-4">
-            {elements}
-          </p>
-        );
-      } else {
-        return (
-          <p key={index} className="mb-4">
-            {paragraph}
-          </p>
-        );
+        return <div key={index} className="mb-4">{elements}</div>;
       }
+      
+      return (
+        <div key={index} className="mb-4">
+          <p>{paragraph}</p>
+        </div>
+      );
     });
-  };
+  }, [message.citations, handleCitationClick]);
 
-  const renderCodeBlock = async (content: string): Promise<React.ReactNode[]> => {
+  const renderCodeBlock = useCallback(async (content: string): Promise<React.ReactNode[]> => {
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
 
+    // Check for incomplete code blocks (streaming)
+    const hasIncompleteBlock = content.includes('```') && !content.match(/```[\s\S]*```/);
+
     while ((match = codeBlockRegex.exec(content)) !== null) {
+      const matchStart = match.index;
+      const matchEnd = match.index + match[0].length;
       const language = match[1] || 'text';
       const code = match[2];
-      const matchStart = match.index;
-      const matchEnd = matchStart + match[0].length;
 
       if (matchStart > lastIndex) {
         const textBefore = content.slice(lastIndex, matchStart);
         if (textBefore.trim()) {
           parts.push(
-            <div key={`text-${matchStart}`} className="mb-4">
+            <div key={`text-${lastIndex}`} className="mb-4">
               {renderContent(textBefore)}
             </div>
           );
@@ -179,9 +168,9 @@ const Message: React.FC<MessageProps> = ({
         const highlightedCode = await highlight(code, language);
         parts.push(
           <div key={`code-${matchStart}`} className="mb-4">
-            <div className="bg-muted rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
-                <span className="text-sm font-mono text-muted-foreground capitalize">
+            <div className="bg-muted/50 rounded-lg overflow-hidden border">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b">
+                <span className="text-sm font-mono text-muted-foreground">
                   {language}
                 </span>
                 <button
@@ -192,22 +181,20 @@ const Message: React.FC<MessageProps> = ({
                 </button>
               </div>
               <div className="p-4 overflow-x-auto">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: highlightedCode,
-                  }}
-                />
+                <pre className="text-sm">
+                  <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+                </pre>
               </div>
             </div>
           </div>
         );
       } catch (error) {
-        console.error('Error highlighting code:', error);
+        // Fallback to plain text if highlighting fails
         parts.push(
           <div key={`code-${matchStart}`} className="mb-4">
-            <div className="bg-muted rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
-                <span className="text-sm font-mono text-muted-foreground capitalize">
+            <div className="bg-muted/50 rounded-lg overflow-hidden border">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b">
+                <span className="text-sm font-mono text-muted-foreground">
                   {language}
                 </span>
                 <button
@@ -230,6 +217,45 @@ const Message: React.FC<MessageProps> = ({
       lastIndex = matchEnd;
     }
 
+    // Handle incomplete code blocks during streaming
+    if (hasIncompleteBlock && isStreaming) {
+      const lastCodeBlockStart = content.lastIndexOf('```');
+      if (lastCodeBlockStart > lastIndex) {
+        const textBefore = content.slice(lastIndex, lastCodeBlockStart);
+        if (textBefore.trim()) {
+          parts.push(
+            <div key="text-before-incomplete" className="mb-4">
+              {renderContent(textBefore)}
+            </div>
+          );
+        }
+        
+        // Show incomplete code block indicator
+        const incompleteCode = content.slice(lastCodeBlockStart);
+        parts.push(
+          <div key="incomplete-code" className="mb-4">
+            <div className="bg-muted/50 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-dashed">
+                <span className="text-sm font-mono text-muted-foreground">
+                  {incompleteCode.split('\n')[0].replace('```', '').trim() || 'text'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <span className="text-xs text-muted-foreground">Streaming...</span>
+                </div>
+              </div>
+              <div className="p-4">
+                <pre className="text-sm text-muted-foreground">
+                  <code>{incompleteCode}</code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        );
+        return parts;
+      }
+    }
+
     if (lastIndex < content.length) {
       const remainingText = content.slice(lastIndex);
       if (remainingText.trim()) {
@@ -242,7 +268,35 @@ const Message: React.FC<MessageProps> = ({
     }
 
     return parts.length > 0 ? parts : renderContent(content);
-  };
+  }, [renderContent, isStreaming]);
+
+  // useEffect hook moved here to ensure renderCodeBlock is defined before use
+  useEffect(() => {
+    if (message.content && message.content.includes('```')) {
+      // Use renderCodeBlock to process both code blocks and inline citations
+      renderCodeBlock(message.content).then(processedContent => {
+        setHighlightedContent(processedContent);
+      }).catch(error => {
+        console.error('Error processing code blocks:', error);
+        setHighlightedContent([]);
+      });
+    } else {
+      setHighlightedContent([]);
+    }
+  }, [message.content, renderCodeBlock]);
+
+  // Efficient streaming effect - only process when streaming ends
+  useEffect(() => {
+    if (!isStreaming && message.content && message.content.includes('```')) {
+      // Process content when streaming ends to avoid page unresponsiveness
+      renderCodeBlock(message.content).then(processedContent => {
+        setHighlightedContent(processedContent);
+      }).catch(error => {
+        console.error('Error processing final content:', error);
+        setHighlightedContent([]);
+      });
+    }
+  }, [isStreaming, message.content, renderCodeBlock]);
 
   if (message.role === 'user') {
     return (
@@ -277,6 +331,7 @@ const Message: React.FC<MessageProps> = ({
 
   return (
     <div className="flex items-start gap-4 mr-6">
+      
       <div className="flex-1 min-w-0">
         <div className="flex border-b mb-4">
           <button
@@ -290,7 +345,7 @@ const Message: React.FC<MessageProps> = ({
           >
             Answer
           </button>
-          {message.citations && message.citations.length > 0 && (
+          {displayCitations && displayCitations.length > 0 && (
             <button
               onClick={() => setActiveTab('sources')}
               className={cn(
@@ -300,17 +355,18 @@ const Message: React.FC<MessageProps> = ({
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
-              Sources({message.citations.length})
+              Sources({displayCitations.length})
             </button>
           )}
+
         </div>
 
         {activeTab === 'answer' ? (
           <div>
-            {message.citations && message.citations.length > 0 && (
+            {displayCitations && displayCitations.length > 0 && (
               <div className="mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {message.citations.slice(0, 6).map((citation: Citation) => (
+                  {displayCitations.slice(0, 6).map((citation: Citation) => (
                     <SourceCard
                       key={citation.id}
                       citation={citation}
@@ -322,7 +378,23 @@ const Message: React.FC<MessageProps> = ({
             )}
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              {highlightedContent}
+              {highlightedContent.length > 0 ? (
+                highlightedContent
+              ) : isStreaming && message.content.includes('```') ? (
+                <div className="space-y-4">
+                  {/* Show streaming indicator for code blocks */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    <span>Code blocks will be formatted when streaming completes...</span>
+                  </div>
+                  {/* Show raw content during streaming for code blocks */}
+                  <div className="bg-muted/30 rounded-lg p-4 font-mono text-sm">
+                    <pre className="whitespace-pre-wrap">{message.content}</pre>
+                  </div>
+                </div>
+              ) : (
+                renderContent(message.content || 'No content available')
+              )}
             </div>
 
             {message.suggestions && message.suggestions.length > 0 && (
@@ -336,9 +408,9 @@ const Message: React.FC<MessageProps> = ({
           </div>
         ) : (
           <div>
-            {message.citations && message.citations.length > 0 ? (
+            {displayCitations && displayCitations.length > 0 ? (
               <div className="space-y-3">
-                {message.citations.map((citation: Citation) => (
+                {displayCitations.map((citation: Citation) => (
                   <SourceCard
                     key={citation.id}
                     citation={citation}
@@ -546,7 +618,7 @@ const CitationChip: React.FC<{
       <p className="text-xs text-primary font-medium">
         Click to view details
       </p>
-    </div>
+  </div>
   );
 
   return (
@@ -557,7 +629,6 @@ const CitationChip: React.FC<{
         onClick={onClick}
         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-all duration-200 cursor-pointer border border-primary/20 hover:border-primary/30 shadow-sm"
       >
-        <span className="font-semibold">[{citation.id}]</span>
         {citation.favicon && (
           <img
             src={citation.favicon}

@@ -101,32 +101,78 @@ const mockCitations: Citation[] = [
     url: "https://stackoverflow.com/questions/tagged/javascript",
     domain: "stackoverflow.com",
     favicon: "https://stackoverflow.com/favicon.ico",
-    snippet: "Stack Overflow is the largest, most trusted online community for developers to learn, share their knowledge, and build their careers."
+    snippet: "Find answers to JavaScript questions from the developer community. Topics include ES6, React, Node.js, and more."
   },
   {
     id: 10,
-    title: "W3Schools - HTML Tutorial",
-    url: "https://www.w3schools.com/html/",
-    domain: "w3schools.com",
-    favicon: "https://www.w3schools.com/favicon.ico",
-    snippet: "HTML is the standard markup language for Web pages. With HTML you can create your own Website. HTML is easy to learn."
+    title: "Web.dev - Modern Web Development",
+    url: "https://web.dev/learn/",
+    domain: "web.dev",
+    favicon: "https://web.dev/favicon.ico",
+    snippet: "Learn modern web development with guides, tutorials, and best practices. Covering performance, accessibility, and modern web APIs."
   },
   {
     id: 11,
-    title: "Dev.to - Web Development Articles",
-    url: "https://dev.to/t/webdev",
-    domain: "dev.to",
-    favicon: "https://dev.to/assets/favicon-32x32.png",
-    snippet: "Dev.to is a community of software developers getting together to help one another out. The software industry relies on collaboration and networked learning."
+    title: "CSS Grid Layout - Complete Guide",
+    url: "https://css-tricks.com/snippets/css/complete-guide-grid/",
+    domain: "css-tricks.com",
+    favicon: "https://css-tricks.com/apple-touch-icon.png",
+    snippet: "A comprehensive guide to CSS Grid Layout, the most powerful CSS layout system available. Learn grid containers, items, and properties."
   }
 ];
 
-const mockSuggestions = [
-  "How do I deploy a Next.js app to Vercel?",
-  "What are the best practices for React performance?",
-  "How to implement dark mode in Tailwind CSS?",
-  "What's the difference between SSR and SSG in Next.js?"
-];
+// Model-specific response generators
+const generateModelSpecificResponse = (prompt: string, model: string): string => {
+  const baseResponse = `Here's a comprehensive answer to your question about "${prompt}":\n\n`;
+  
+  switch (model) {
+    case 'Balanced':
+      return `${baseResponse}This balanced approach considers multiple perspectives and provides a well-rounded view. The key points include:\n\n• **Next.js Framework**: A balanced approach to building React applications with server-side rendering and static generation [1]. The Next.js documentation provides excellent getting started guides for production-ready web apps.\n\n• **React Development**: Using React hooks and components for state management and UI development [2]. The React documentation covers everything from basic hooks to advanced patterns.\n\n• **CSS and Styling**: Tailwind CSS offers a utility-first approach that balances flexibility with consistency [3]. This framework provides pre-built classes for rapid development.\n\n• **TypeScript Integration**: Adding type safety to JavaScript projects [4] while maintaining the flexibility of the language.\n\n• **Performance Optimization**: Node.js backend considerations [5] and deployment strategies that balance speed with reliability.\n\nThis approach works well for teams that need a middle ground between speed and thoroughness, leveraging proven technologies like React and Next.js.`;
+      
+    case 'Creative':
+      return `${baseResponse}Let's think outside the box! Here's a creative and innovative approach:\n\n✨ **Innovative Solutions with Modern Tech Stack:**\n• **Next.js App Router**: Experimental features and cutting-edge server components [1] that push the boundaries of React development\n• **React Server Components**: Unconventional approaches to state management and rendering [2] that challenge traditional client-side patterns\n• **Advanced CSS Techniques**: Creative layouts using Flexbox [8] and modern CSS features for unique user experiences\n• **TypeScript Advanced Patterns**: Pushing the limits of type safety [4] with creative generic implementations\n\n🎨 **Creative Benefits:**\n• Unique user experiences through innovative React patterns [2]\n• Memorable solutions using Next.js features [1]\n• Competitive differentiation with cutting-edge web technologies\n• Future-proofing through experimental React and Next.js features\n\nThis creative approach is perfect for projects that need to stand out and push boundaries using the latest in React and Next.js development!`;
+      
+    case 'Precise':
+      return `${baseResponse}For maximum accuracy and precision, here's a detailed technical analysis:\n\n🔬 **Technical Deep Dive into Modern Web Stack:**\n• **Next.js Implementation**: Comprehensive code examples with detailed explanations of server-side rendering [1]. The Next.js documentation provides step-by-step implementation guides.\n\n• **React Component Architecture**: Detailed analysis of hooks, state management, and component lifecycle [2]. The React documentation covers performance optimization and best practices.\n\n• **CSS Layout Systems**: In-depth exploration of Flexbox [8] and modern CSS techniques with specific implementation details.\n\n• **TypeScript Type Safety**: Comprehensive type definitions and advanced patterns [4] for production applications.\n\n• **Performance Analysis**: Node.js optimization strategies [5] and deployment considerations for production systems.\n\n📊 **Data-Driven Approach:**\n• Specific metrics for React and Next.js performance\n• Detailed comparison of different CSS frameworks including Tailwind [3]\n• Step-by-step implementation guide using official documentation [1, 2]\n• Thorough testing and validation procedures for web applications\n\nThis precise approach ensures reliability and maintainability for production systems built with React, Next.js, and modern web technologies.`;
+      
+    default:
+      return `${baseResponse}Here's a helpful response to your question about "${prompt}". The key considerations include practical implementation using React [2] and Next.js [1], best practices from official documentation, and real-world examples from the web development community.`;
+  }
+};
+
+// Model-specific suggestions
+const generateModelSpecificSuggestions = (model: string): string[] => {
+  switch (model) {
+    case 'Balanced':
+      return [
+        "Show me a balanced comparison of approaches",
+        "What are the pros and cons?",
+        "Give me a practical implementation",
+        "What should I consider for my team?"
+      ];
+    case 'Creative':
+      return [
+        "Show me innovative alternatives",
+        "What's the most creative approach?",
+        "How can I make this stand out?",
+        "What are some experimental ideas?"
+      ];
+    case 'Precise':
+      return [
+        "Show me detailed technical specs",
+        "What are the performance implications?",
+        "Give me step-by-step instructions",
+        "What are the security considerations?"
+      ];
+    default:
+      return [
+        "Tell me more about this",
+        "Show me examples",
+        "What are the alternatives?",
+        "How do I implement this?"
+      ];
+  }
+};
 
         async function* generateMockStream(message: string) {
           let response = `Here's a comprehensive answer about ${message.toLowerCase()}. This is a detailed explanation that covers all the important aspects you need to know [1]. The response includes multiple paragraphs with relevant information and examples [2]. You can find more details in the official documentation [3].`;
@@ -277,34 +323,46 @@ class ChatAPI {
     onComplete?: (conversationId: string) => void,
     abortSignal?: AbortSignal
   ): Promise<string> {
-    console.log('Starting mock streaming for:', request.message);
-    const generator = generateMockStream(request.message);
-    let fullResponse = '';
+    const model = request.model || 'Balanced';
+    const fullResponse = generateModelSpecificResponse(request.message, model);
     const conversationId = `mock-${Date.now()}`;
 
-    // Don't add citations immediately - wait for streaming to start
-    // This ensures Answer tab appears first, then Sources tab and cards
-
+    // Stream the response word by word for realistic effect
+    const words = fullResponse.split(' ');
+    let streamedResponse = '';
+    
     try {
-      for await (const chunk of generator) {
+      for (let i = 0; i < words.length; i++) {
         if (abortSignal?.aborted) {
           throw new Error('Aborted');
         }
         
-        console.log('Mock streaming chunk:', chunk);
-        fullResponse += chunk;
+        const word = words[i];
+        const chunk = i === 0 ? word : ' ' + word;
+        streamedResponse += chunk;
+        
         onChunk(chunk);
         
-        // Add citations after first few chunks (when streaming has started)
-        if (fullResponse.length > 50 && onCitations) {
-          onCitations(mockCitations);
+        // Add citations early in the stream to ensure they're visible
+        if (i === 1 && onCitations) {
+          // Store the callback reference before clearing it
+          const citationsCallback = onCitations;
+          
           // Clear the callback to prevent multiple calls
           onCitations = undefined;
+          
+          // Add citations immediately to ensure they're associated with the message
+          setTimeout(() => {
+            citationsCallback(mockCitations);
+          }, 100);
         }
+        
+        // Small delay between words for realistic streaming
+        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
       }
 
       setTimeout(() => {
-        onSuggestions?.(mockSuggestions);
+        onSuggestions?.(generateModelSpecificSuggestions(request.model || 'Balanced'));
       }, 500);
 
       setTimeout(() => {
@@ -381,9 +439,9 @@ class ChatAPI {
     });
   }
 
-  async getSuggestions(prompt: string): Promise<string[]> {
+  async getSuggestions(prompt: string, model: string = 'Balanced'): Promise<string[]> {
     if (this.useMock) {
-      return mockSuggestions;
+      return generateModelSpecificSuggestions(model);
     }
 
     const response = await this.makeRequest(`/api/suggestions?prompt=${encodeURIComponent(prompt)}`);

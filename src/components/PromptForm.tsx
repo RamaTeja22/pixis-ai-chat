@@ -116,11 +116,10 @@ export function PromptForm() {
       await chatAPI.streamChat(
         {
           message: prompt,
-          model: currentConversation?.model || 'Balanced',
+          model: useChatStore.getState().model,
           conversationId,
         },
         (chunk) => {
-          console.log('Received chunk:', chunk);
           appendMessageContent(conversationId, assistantMessageId, chunk);
         },
         (citations) => {
